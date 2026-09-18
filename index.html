@@ -1,0 +1,2553 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f1723" />
+  <title>Resin Route — Planejador Semanal de Genshin</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://enka.network" crossorigin>
+  <link rel="preconnect" href="https://api.ambr.top" crossorigin>
+  <style>
+:root {
+  --bg: #09111a;
+  --bg-2: #0d1824;
+  --panel: rgba(18, 31, 45, 0.86);
+  --panel-strong: #132333;
+  --panel-hover: #182b3d;
+  --line: rgba(203, 225, 238, 0.11);
+  --line-strong: rgba(203, 225, 238, 0.2);
+  --text: #edf6fb;
+  --muted: #91a8b8;
+  --muted-2: #647c8e;
+  --gold: #d9bb78;
+  --gold-2: #f0d89d;
+  --cyan: #77c9d4;
+  --danger: #ef8e88;
+  --success: #80d5a5;
+  --shadow: 0 24px 80px rgba(0,0,0,.28);
+  --radius-lg: 22px;
+  --radius-md: 15px;
+  --radius-sm: 10px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 20% -10%, rgba(119, 201, 212, .10), transparent 34%),
+    radial-gradient(circle at 92% 10%, rgba(217, 187, 120, .09), transparent 30%),
+    linear-gradient(180deg, #081019 0%, #0a1420 45%, #071018 100%);
+  font-family: "DM Sans", system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+button, input, select { font: inherit; }
+button { color: inherit; }
+a { color: var(--gold-2); }
+
+.ambient { position: fixed; pointer-events: none; filter: blur(80px); opacity: .3; z-index: -1; border-radius: 999px; }
+.ambient-a { width: 340px; height: 340px; background: #1d7481; top: 18%; left: -180px; }
+.ambient-b { width: 300px; height: 300px; background: #8b6a31; top: 55%; right: -170px; }
+
+.shell { width: min(1440px, calc(100% - 40px)); margin-inline: auto; }
+.topbar { height: 86px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.brand { display: flex; align-items: center; gap: 12px; color: var(--text); text-decoration: none; }
+.brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid rgba(217,187,120,.35); border-radius: 50%; color: var(--gold-2); background: rgba(217,187,120,.08); box-shadow: inset 0 0 18px rgba(217,187,120,.05); }
+.brand strong { display: block; font-family: "Marcellus", serif; font-size: 22px; font-weight: 400; letter-spacing: .02em; }
+.brand small { color: var(--muted); display: block; margin-top: 1px; font-size: 12px; }
+.top-actions { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+.button, .icon-button {
+  border: 1px solid transparent;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: .18s ease;
+}
+.button { min-height: 40px; padding: 0 15px; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.button.primary { color: #11202b; background: linear-gradient(180deg, #f1dca6, #d7b970); box-shadow: 0 8px 24px rgba(217,187,120,.12); }
+.button.primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.button.ghost { border-color: var(--line-strong); background: rgba(255,255,255,.025); color: #dbe8ef; }
+.button.ghost:hover { background: rgba(255,255,255,.06); border-color: rgba(203,225,238,.3); }
+.button.danger { color: var(--danger); }
+.file-button { position: relative; overflow: hidden; }
+.icon-button { width: 37px; height: 37px; display: grid; place-items: center; background: transparent; border-color: var(--line); color: var(--muted); font-size: 18px; }
+.icon-button:hover { background: rgba(255,255,255,.05); color: var(--text); }
+.danger-icon:hover { color: var(--danger); border-color: rgba(239,142,136,.28); background: rgba(239,142,136,.06); }
+
+.status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #b7a065; box-shadow: 0 0 0 4px rgba(183,160,101,.08); }
+.status-pill.online .status-dot { background: var(--success); box-shadow: 0 0 0 4px rgba(128,213,165,.08); }
+.status-pill.offline .status-dot { background: var(--danger); box-shadow: 0 0 0 4px rgba(239,142,136,.08); }
+
+.app-shell { padding-bottom: 52px; }
+.panel { background: linear-gradient(180deg, rgba(20,35,50,.88), rgba(14,27,40,.88)); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow); backdrop-filter: blur(18px); }
+.hero { min-height: 190px; display: flex; align-items: center; justify-content: space-between; gap: 36px; padding: 32px 36px; overflow: hidden; position: relative; }
+.hero::after { content: "✦"; position: absolute; right: 31%; top: -70px; font-size: 250px; color: rgba(217,187,120,.025); transform: rotate(18deg); pointer-events: none; }
+.eyebrow { display: block; color: var(--gold); font-size: 10px; letter-spacing: .17em; font-weight: 800; margin-bottom: 8px; }
+.hero h1, .section-heading h2 { font-family: "Marcellus", serif; font-weight: 400; margin: 0; }
+.hero h1 { font-size: clamp(31px, 4vw, 50px); line-height: 1.05; }
+.hero p { margin: 12px 0 0; color: var(--muted); max-width: 560px; line-height: 1.55; }
+.hero-stats { display: grid; grid-template-columns: repeat(3, minmax(110px, 1fr)); gap: 10px; min-width: min(510px, 48%); }
+.stat { padding: 17px 18px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255,255,255,.025); }
+.stat > span, .stat small { display: block; color: var(--muted); }
+.stat > span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.stat strong { display: block; font-size: 27px; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+.stat small { font-size: 11px; }
+.cap-stat input { width: 82px; color: var(--text); background: transparent; border: 0; outline: 0; padding: 0; font-size: 27px; font-weight: 700; }
+
+.day-tabs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin: 14px 0; }
+.day-tab { min-height: 72px; border: 1px solid var(--line); border-radius: 15px; background: rgba(17,31,45,.66); color: var(--muted); cursor: pointer; padding: 10px 12px; text-align: left; transition: .18s ease; }
+.day-tab:hover { background: rgba(24,43,61,.88); border-color: var(--line-strong); }
+.day-tab.active { background: linear-gradient(180deg, rgba(217,187,120,.13), rgba(217,187,120,.055)); border-color: rgba(217,187,120,.35); color: var(--text); }
+.day-tab.today .day-name::after { content: " •"; color: var(--cyan); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+.day-name { display: block; font-weight: 800; font-size: 12px; }
+.day-resin { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 11px; }
+.day-resin strong { color: var(--gold-2); font-weight: 700; }
+.day-mini-track { height: 3px; border-radius: 99px; background: rgba(255,255,255,.06); overflow: hidden; margin-top: 8px; }
+.day-mini-track span { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--gold)); width: 0; }
+
+.workspace { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(390px, .82fr); gap: 14px; align-items: start; }
+.planner-column, .library-column, .week-overview { padding: 25px; }
+.planner-column { min-height: 610px; }
+.library-column { min-height: 610px; position: static; margin-top: 0; align-self: start; }
+.section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.section-heading h2 { font-size: 26px; }
+.day-budget { width: min(220px, 44%); text-align: right; color: var(--muted); font-size: 11px; padding-top: 4px; }
+.budget-track { margin-top: 9px; width: 100%; height: 7px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; }
+.budget-track span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--gold)); border-radius: inherit; transition: width .2s ease; }
+.budget-track span.over { background: linear-gradient(90deg, #dc8d6f, #e56f72); }
+
+.task-list { display: grid; gap: 10px; margin-top: 22px; }
+.task-card { display: grid; grid-template-columns: 74px minmax(0,1fr) auto; gap: 15px; align-items: center; min-height: 103px; padding: 13px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.025); transition: .18s ease; }
+.task-card:hover { transform: translateY(-1px); background: rgba(255,255,255,.04); border-color: var(--line-strong); }
+.task-card.dragging { opacity: .45; }
+.task-image-wrap, .dialog-image-wrap { overflow: hidden; position: relative; display: grid; place-items: center; background: radial-gradient(circle at 50% 22%, rgba(217,187,120,.24), rgba(54,73,91,.36) 65%); }
+.task-image-wrap { width: 74px; height: 74px; border-radius: 14px; border: 1px solid rgba(255,255,255,.07); }
+.task-image, .dialog-image { width: 100%; height: 100%; object-fit: contain; }
+.task-image-fallback { color: var(--gold-2); opacity: .55; }
+.task-main { min-width: 0; }
+.task-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.task-category { color: var(--cyan); text-transform: uppercase; font-size: 9px; letter-spacing: .12em; font-weight: 800; }
+.task-total { color: var(--gold-2); font-size: 11px; font-weight: 800; }
+.task-title { margin: 5px 0 3px; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-note { margin: 0; color: var(--muted); font-size: 11px; min-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-actions { display: flex; flex-direction: column; gap: 4px; }
+.task-actions .icon-button { width: 29px; height: 27px; font-size: 13px; }
+.run-controls { margin-top: 11px; display: flex; gap: 5px; flex-wrap: wrap; }
+.run-dot { width: 24px; height: 24px; border: 1px solid var(--line-strong); border-radius: 7px; background: rgba(255,255,255,.025); color: transparent; cursor: pointer; position: relative; }
+.run-dot:hover { border-color: rgba(119,201,212,.38); }
+.run-dot.done { background: rgba(128,213,165,.12); border-color: rgba(128,213,165,.35); color: var(--success); }
+.run-dot.done::after { content: "✓"; color: var(--success); position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+.run-count { color: var(--muted); font-size: 10px; align-self: center; margin-left: 4px; }
+
+.empty-state { padding: 86px 20px; text-align: center; }
+.empty-state[hidden] { display: none; }
+.empty-icon { width: 62px; height: 62px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(217,187,120,.22); color: var(--gold); background: rgba(217,187,120,.05); font-size: 25px; }
+.empty-state h3 { margin: 0 0 6px; font-family: "Marcellus", serif; font-size: 22px; font-weight: 400; }
+.empty-state p { color: var(--muted); margin: 0 auto 18px; max-width: 360px; font-size: 13px; }
+
+.library-heading { align-items: center; }
+.library-tabs { display: flex; gap: 6px; margin-top: 20px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
+.library-tab { border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 7px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; white-space: nowrap; }
+.library-tab.active { color: #17232d; background: var(--gold-2); border-color: transparent; }
+.search-box { margin-top: 13px; height: 44px; display: flex; align-items: center; gap: 9px; padding: 0 13px; border: 1px solid var(--line); border-radius: 12px; background: rgba(7,16,25,.38); color: var(--muted); }
+.search-box:focus-within { border-color: rgba(119,201,212,.34); }
+.search-box input { width: 100%; border: 0; outline: 0; color: var(--text); background: transparent; font-size: 13px; }
+.search-box input::placeholder { color: var(--muted-2); }
+.library-meta { display: flex; justify-content: space-between; gap: 14px; color: var(--muted-2); font-size: 10px; margin: 10px 2px 9px; }
+.library-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 7px; max-height: 445px; overflow: auto; padding-right: 3px; scrollbar-width: thin; }
+.entity-card { border: 1px solid var(--line); border-radius: 13px; padding: 7px; background: rgba(255,255,255,.022); cursor: pointer; min-width: 0; transition: .16s ease; }
+.entity-card:hover { background: var(--panel-hover); transform: translateY(-2px); border-color: rgba(217,187,120,.22); }
+.entity-thumb { aspect-ratio: 1 / 1; width: 100%; border-radius: 10px; overflow: hidden; display: grid; place-items: center; background: radial-gradient(circle at 50% 25%, rgba(217,187,120,.17), rgba(55,73,91,.28) 70%); }
+.entity-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.entity-card strong { display: block; margin-top: 7px; font-size: 10px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entity-card small { display: block; color: var(--muted-2); margin-top: 2px; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entity-card .thumb-fallback { color: rgba(240,216,157,.55); font-size: 20px; }
+.spinner { width: 27px; height: 27px; border: 2px solid rgba(255,255,255,.08); border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.week-overview { margin-top: 14px; }
+.week-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-top: 22px; }
+.week-bar-card { border: 1px solid var(--line); border-radius: 14px; padding: 13px; background: rgba(255,255,255,.018); }
+.week-bar-card header { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 11px; }
+.week-bar-card header strong { font-size: 12px; }
+.vertical-bar { height: 78px; display: flex; align-items: flex-end; margin-top: 11px; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,.035); }
+.vertical-bar span { width: 100%; min-height: 2px; background: linear-gradient(180deg, var(--gold), rgba(119,201,212,.65)); border-radius: 8px 8px 0 0; transition: height .25s ease; }
+.week-bar-card small { color: var(--muted-2); display: block; margin-top: 8px; font-size: 9px; }
+.footer { display: flex; justify-content: space-between; gap: 30px; color: var(--muted-2); font-size: 10px; line-height: 1.55; padding: 24px 4px 0; }
+.footer p { margin: 0; }
+
+.task-dialog { width: min(660px, calc(100% - 24px)); border: 0; padding: 0; background: transparent; color: var(--text); }
+.task-dialog::backdrop { background: rgba(2,8,13,.72); backdrop-filter: blur(9px); }
+.dialog-card { position: relative; border: 1px solid var(--line-strong); border-radius: 22px; background: linear-gradient(180deg, #16283a, #101f2d); box-shadow: 0 34px 110px rgba(0,0,0,.55); padding: 24px; }
+.dialog-close { position: absolute; top: 15px; right: 15px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,.02); color: var(--muted); font-size: 21px; cursor: pointer; }
+.dialog-entity { display: flex; align-items: center; gap: 16px; padding-right: 38px; }
+.dialog-image-wrap { width: 80px; height: 80px; flex: 0 0 80px; border-radius: 16px; border: 1px solid var(--line); }
+.entity-fallback { color: var(--gold-2); font-size: 24px; opacity: .65; }
+.entity-type { color: var(--cyan); font-size: 9px; font-weight: 800; letter-spacing: .13em; }
+.dialog-entity h2 { font-family: "Marcellus", serif; font-weight: 400; margin: 4px 0; font-size: 25px; }
+.dialog-entity p { margin: 0; color: var(--muted); font-size: 12px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+.field { display: grid; gap: 6px; }
+.field.span-2 { grid-column: span 2; }
+.field > span { color: #b7c9d4; font-size: 10px; font-weight: 700; }
+.field small { color: var(--muted-2); font-weight: 500; }
+.field input, .field select { width: 100%; min-height: 43px; border: 1px solid var(--line); border-radius: 10px; outline: 0; background: rgba(5,13,21,.38); color: var(--text); padding: 0 11px; font-size: 12px; }
+.field input:focus, .field select:focus { border-color: rgba(119,201,212,.35); }
+.field select option { color: #111; }
+.resin-presets { display: flex; gap: 7px; margin-top: 12px; }
+.resin-presets button { min-width: 51px; height: 31px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.025); color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 700; }
+.resin-presets button:hover { color: var(--gold-2); border-color: rgba(217,187,120,.3); }
+.dialog-summary { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding: 13px 14px; border: 1px solid rgba(217,187,120,.17); background: rgba(217,187,120,.055); border-radius: 12px; color: var(--muted); font-size: 11px; }
+.dialog-summary strong { color: var(--gold-2); font-size: 15px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px); background: #1b2c3d; border: 1px solid var(--line-strong); color: var(--text); border-radius: 999px; padding: 10px 15px; box-shadow: var(--shadow); font-size: 11px; opacity: 0; pointer-events: none; z-index: 50; transition: .2s ease; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Miniaturas do seletor: o <img> fica renderizado durante o carregamento para evitar
+   o bloqueio de lazy-loading que ocorria quando ele começava com hidden/display:none. */
+.entity-thumb { position: relative; }
+.entity-thumb img,
+.entity-thumb .thumb-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.entity-thumb img { object-fit: contain; transition: opacity .16s ease; }
+.entity-thumb .thumb-fallback { display: grid; place-items: center; }
+.entity-thumb .thumb-fallback[hidden] { display: none; }
+
+@media (max-width: 1100px) {
+  .hero { align-items: flex-start; flex-direction: column; }
+  .hero-stats { min-width: 100%; width: 100%; }
+  .workspace { grid-template-columns: 1fr; }
+  .library-column { position: static; }
+  .library-grid { grid-template-columns: repeat(6, 1fr); max-height: 410px; }
+  .week-bars { grid-template-columns: repeat(7, minmax(110px,1fr)); overflow-x: auto; padding-bottom: 5px; }
+}
+
+@media (max-width: 760px) {
+  .shell { width: min(100% - 22px, 1440px); }
+  .topbar { height: auto; padding: 15px 0; align-items: flex-start; }
+  .top-actions { max-width: 58%; }
+  .status-pill { display: none; }
+  .hero { padding: 24px; }
+  .hero-stats { grid-template-columns: 1fr 1fr; }
+  .hero-stats .cap-stat { grid-column: span 2; }
+  .day-tabs { grid-template-columns: repeat(7, minmax(95px,1fr)); overflow-x: auto; padding-bottom: 4px; }
+  .workspace { display: block; }
+  .library-column { margin-top: 14px; }
+  .planner-column, .library-column, .week-overview { padding: 18px; }
+  .library-grid { grid-template-columns: repeat(4, 1fr); }
+  .task-card { grid-template-columns: 62px minmax(0,1fr); }
+  .task-image-wrap { width: 62px; height: 62px; }
+  .task-actions { grid-column: 1 / -1; flex-direction: row; justify-content: flex-end; }
+  .footer { flex-direction: column; gap: 8px; }
+}
+
+@media (max-width: 470px) {
+  .brand small { display: none; }
+  .top-actions .button { min-height: 36px; padding: 0 11px; font-size: 11px; }
+  .hero-stats { grid-template-columns: 1fr; }
+  .hero-stats .cap-stat { grid-column: auto; }
+  .hero h1 { font-size: 34px; }
+  .library-grid { grid-template-columns: repeat(3, 1fr); }
+  .form-grid { grid-template-columns: 1fr; }
+  .field.span-2 { grid-column: auto; }
+}
+
+/* ===== Genshin-inspired visual pass ===== */
+:root {
+  --bg: #102136;
+  --bg-2: #172d46;
+  --panel: rgba(246, 242, 231, .96);
+  --panel-strong: #f7f2e5;
+  --panel-hover: #eef4f7;
+  --line: rgba(62, 78, 100, .17);
+  --line-strong: rgba(62, 78, 100, .3);
+  --text: #3d4b5e;
+  --muted: #718197;
+  --muted-2: #93a0b0;
+  --gold: #b89b63;
+  --gold-2: #d8bd7a;
+  --cyan: #5d9fbe;
+  --danger: #c96f6a;
+  --success: #65a980;
+  --shadow: 0 22px 60px rgba(8, 28, 51, .22);
+}
+body {
+  color: var(--text);
+  background:
+    radial-gradient(circle at 14% 5%, rgba(126, 208, 232, .30), transparent 22%),
+    radial-gradient(circle at 84% 8%, rgba(255, 225, 158, .18), transparent 20%),
+    linear-gradient(145deg, #193c62 0%, #244f72 36%, #17314d 69%, #102238 100%);
+  background-attachment: fixed;
+  position: relative;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .22;
+  background-image:
+    linear-gradient(30deg, transparent 48%, rgba(255,255,255,.12) 49%, transparent 51%),
+    linear-gradient(150deg, transparent 48%, rgba(255,255,255,.07) 49%, transparent 51%);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to bottom, #000, transparent 70%);
+  z-index: -2;
+}
+.ambient-a { background: #73d7ef; opacity: .22; }
+.ambient-b { background: #f1c876; opacity: .2; }
+.topbar {
+  margin-top: 14px;
+  padding: 10px 16px;
+  height: auto;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(15,39,64,.88), rgba(13,31,52,.82));
+  box-shadow: 0 14px 40px rgba(4,20,38,.22);
+  backdrop-filter: blur(16px);
+}
+.brand, .topbar .button { color: #f7f2e8; }
+.brand-mark {
+  border-color: rgba(228,201,139,.55);
+  color: #f1dba6;
+  background: radial-gradient(circle, rgba(225,197,130,.2), rgba(225,197,130,.04));
+}
+.brand small { color: #adc0d0; }
+.status-pill { border-color: rgba(255,255,255,.13); color: #c6d5df; background: rgba(255,255,255,.035); }
+.button.ghost { border-color: rgba(255,255,255,.17); background: rgba(255,255,255,.05); color: #edf5f8; }
+.button.ghost:hover { background: rgba(255,255,255,.1); }
+.button.primary {
+  color: #3f4a59;
+  background: linear-gradient(180deg, #f3e7c8, #d8bd7a);
+  border-color: rgba(255,255,255,.4);
+  box-shadow: inset 0 1px rgba(255,255,255,.65), 0 7px 18px rgba(10,25,45,.18);
+}
+.panel {
+  position: relative;
+  background: linear-gradient(180deg, rgba(251,248,239,.97), rgba(239,236,225,.97));
+  border: 1px solid rgba(255,255,255,.55);
+  outline: 1px solid rgba(75,91,113,.14);
+  box-shadow: var(--shadow), inset 0 1px rgba(255,255,255,.85);
+  backdrop-filter: blur(16px);
+}
+.panel::before, .panel::after {
+  content: "✦";
+  position: absolute;
+  color: rgba(183,154,95,.42);
+  font-size: 13px;
+  pointer-events: none;
+}
+.panel::before { top: 9px; left: 12px; }
+.panel::after { right: 12px; bottom: 9px; transform: rotate(45deg); }
+.hero {
+  margin-top: 14px;
+  background:
+    linear-gradient(90deg, rgba(248,244,232,.98) 0 57%, rgba(228,239,243,.95) 100%),
+    var(--panel);
+  border-radius: 24px;
+}
+.hero::after { color: rgba(97,140,166,.08); }
+.hero h1, .section-heading h2, .empty-state h3, .dialog-entity h2 { color: #3b4656; letter-spacing: .01em; }
+.hero p, .stat > span, .stat small, .day-budget, .task-note, .library-meta, .footer, .dialog-entity p { color: var(--muted); }
+.eyebrow { color: #a98c53; }
+.stat {
+  background: linear-gradient(180deg, rgba(255,255,255,.75), rgba(232,237,238,.7));
+  border-color: rgba(88,110,130,.13);
+  box-shadow: inset 0 1px rgba(255,255,255,.9);
+}
+.stat strong, .cap-stat input { color: #47566a; }
+.day-tab {
+  color: #dce7ed;
+  background: linear-gradient(180deg, rgba(27,58,87,.9), rgba(19,42,66,.9));
+  border: 1px solid rgba(255,255,255,.13);
+  box-shadow: inset 0 1px rgba(255,255,255,.06);
+}
+.day-tab:hover { background: linear-gradient(180deg, #2b607e, #214965); }
+.day-tab.active {
+  color: #3c495a;
+  background: linear-gradient(180deg, #f6edda, #e5d4ad);
+  border-color: rgba(255,231,174,.8);
+  box-shadow: 0 8px 20px rgba(8,28,49,.15), inset 0 1px white;
+}
+.day-tab.active .day-resin strong { color: #937640; }
+.day-tab.today .day-name::after { color: #78bfd4; }
+.day-mini-track { background: rgba(255,255,255,.12); }
+.day-tab.active .day-mini-track { background: rgba(89,105,123,.13); }
+.day-mini-track span, .budget-track span { background: linear-gradient(90deg, #76bad1, #d4b86f); }
+.planner-column, .library-column, .week-overview { overflow: hidden; }
+.task-card, .entity-card, .week-bar-card {
+  background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(237,238,234,.76));
+  border-color: rgba(72,91,111,.14);
+  box-shadow: inset 0 1px rgba(255,255,255,.9);
+}
+.task-card:hover, .entity-card:hover {
+  background: linear-gradient(180deg, #fff, #edf3f4);
+  border-color: rgba(177,146,86,.4);
+}
+.task-image-wrap, .dialog-image-wrap, .entity-thumb {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(139,205,227,.44), transparent 45%),
+    linear-gradient(180deg, #d7e7ec, #b8ced9);
+  border-color: rgba(101,126,143,.17);
+}
+.task-category, .entity-type { color: #4c91af; }
+.task-total, .dialog-summary strong { color: #9c7f47; }
+.task-title, .entity-card strong { color: #425064; }
+.icon-button { color: #73859b; border-color: rgba(79,99,121,.16); background: rgba(255,255,255,.4); }
+.icon-button:hover { background: white; color: #4b5c70; }
+.run-dot { background: #eef1ef; border-color: rgba(83,103,122,.2); }
+.empty-icon { background: #eef3f3; color: #af925a; }
+.library-tab { color: #6d7c8e; border-color: rgba(76,95,115,.16); background: rgba(255,255,255,.45); }
+.library-tab.active { color: #3d4a5a; background: linear-gradient(180deg,#f0e2bd,#d9bd79); box-shadow: inset 0 1px rgba(255,255,255,.7); }
+.search-box {
+  background: rgba(255,255,255,.64);
+  border-color: rgba(79,99,119,.16);
+  color: #77879a;
+}
+.search-box input { color: #435267; }
+.search-box input::placeholder { color: #98a4b2; }
+.spinner { border-color: rgba(58,76,97,.12); border-top-color: #b1945c; }
+.vertical-bar { background: rgba(80,100,119,.08); }
+.vertical-bar span { background: linear-gradient(180deg, #d5ba73, #6fa9c1); }
+.footer a { color: #e8cf98; }
+.task-dialog::backdrop { background: rgba(7,23,40,.7); }
+.dialog-card {
+  color: var(--text);
+  background: linear-gradient(180deg, #f8f4e8, #e9e7de);
+  border-color: rgba(255,255,255,.75);
+  outline: 1px solid rgba(64,82,103,.25);
+}
+.dialog-close { color: #708095; background: rgba(255,255,255,.5); border-color: rgba(74,94,113,.16); }
+.field > span { color: #637388; }
+.field input, .field select {
+  color: #3f4e62;
+  background: rgba(255,255,255,.72);
+  border-color: rgba(77,97,119,.17);
+}
+.resin-presets button { background: rgba(255,255,255,.62); color: #6f7f91; border-color: rgba(74,94,115,.15); }
+.dialog-summary { background: rgba(216,189,122,.14); border-color: rgba(183,154,96,.28); color: #6f7d8e; }
+.toast { background: #eff0e9; color: #405064; border-color: rgba(70,90,110,.2); }
+
+@media (max-width: 760px) {
+  .topbar { margin-top: 8px; }
+  .hero { margin-top: 10px; }
+}
+
+
+/* v4: bilingual controls, misc routes, strongbox integration, and softer progress UI */
+.language-control { display:flex; align-items:center; gap:7px; min-height:40px; padding:0 9px 0 11px; border:1px solid var(--line-strong); border-radius:11px; background:rgba(255,255,255,.38); color:#637388; }
+.language-control span { font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.language-control select { border:0; outline:0; background:transparent; color:#455568; font-weight:800; font-size:12px; cursor:pointer; }
+.language-control select option { color:#111; }
+.budget-track { height:2px !important; background:rgba(76,95,115,.10) !important; }
+.budget-track span { background:#b89b60 !important; }
+.budget-track span.over { background:#bf6d61 !important; }
+.day-mini-track { opacity:.58; height:2px !important; }
+.entity-card.misc-card .entity-thumb { background:linear-gradient(145deg, rgba(76,145,175,.12), rgba(216,189,122,.18)); }
+.entity-card.misc-card .thumb-fallback { font-size:28px; opacity:.9; color:#887047; }
+.entity-card strong { min-height:25px; white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.entity-thumb img { z-index:2; }
+.entity-thumb .thumb-fallback { z-index:1; }
+.dialog-image { z-index:2; }
+.entity-fallback { z-index:1; }
+.artifact-method-note { color:var(--muted); font-size:10px; margin-top:3px; }
+.strongbox-dialog { width:min(900px, calc(100% - 24px)); border:0; padding:0; background:transparent; color:var(--text); }
+.strongbox-dialog::backdrop { background:rgba(7,23,40,.72); backdrop-filter:blur(9px); }
+.strongbox-card { position:relative; border:1px solid var(--line-strong); border-radius:22px; background:linear-gradient(180deg,#fbf8ee,#eef2f1); box-shadow:0 34px 110px rgba(0,0,0,.42); padding:24px; color:#435268; max-height:min(86vh,850px); overflow:hidden; }
+.strongbox-card .dialog-close { z-index:5; }
+.strongbox-header h2 { margin:4px 0 6px; font-family:"Marcellus",serif; font-weight:400; font-size:28px; color:#3b4656; }
+.strongbox-header p { margin:0; color:#718194; font-size:12px; max-width:700px; line-height:1.5; }
+.strongbox-search { margin-top:18px; }
+.strongbox-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:9px; margin-top:12px; max-height:56vh; overflow:auto; padding:2px 4px 8px 1px; }
+.strongbox-grid .entity-card { color:#435268; background:rgba(255,255,255,.66); border-color:rgba(76,95,115,.14); }
+.strongbox-grid .entity-card:hover { background:#fffdf7; border-color:rgba(183,154,96,.42); }
+.strongbox-empty { grid-column:1/-1; padding:55px 20px; text-align:center; color:#718194; font-size:12px; }
+.method-badge { display:inline-flex; align-items:center; gap:5px; margin-top:5px; padding:3px 7px; border-radius:999px; background:rgba(216,189,122,.16); color:#8c7140; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+@media (max-width:900px){ .strongbox-grid{grid-template-columns:repeat(4,1fr)} }
+@media (max-width:600px){ .language-control span{display:none}.strongbox-grid{grid-template-columns:repeat(3,1fr)} .strongbox-card{padding:18px} }
+
+
+/* v5: cleaner planner, face-focused portraits, character material mode, guaranteed misc imagery */
+.budget-track, .day-mini-track { display:none !important; }
+.day-budget { width:auto; min-width:120px; padding-top:0; }
+.entity-card[data-entity-type="characters"] .entity-thumb img,
+.character-portrait img { object-fit:contain; object-position:center 18%; }
+.character-farm-field { border:1px solid rgba(184,155,96,.18); border-radius:13px; padding:12px; background:rgba(255,255,255,.34); }
+.character-material-preview { display:flex; gap:7px; flex-wrap:wrap; margin-top:9px; }
+.material-preview-loading { color:var(--muted); font-size:10px; }
+.material-chip { display:flex; align-items:center; gap:6px; max-width:210px; padding:5px 8px 5px 5px; border:1px solid rgba(76,95,115,.13); background:rgba(255,255,255,.58); border-radius:10px; color:#5c6b7c; font-size:9px; font-weight:700; }
+.material-chip-image { width:28px; height:28px; flex:0 0 28px; border-radius:7px; overflow:hidden; position:relative; background:rgba(106,145,169,.12); }
+.material-chip-image img,.material-chip-image .thumb-fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:grid;place-items:center;}
+.material-chip-image .thumb-fallback[hidden]{display:none;}
+.top-actions { flex-wrap:wrap; justify-content:flex-end; }
+@media(max-width:760px){.day-budget{min-width:auto}.character-material-preview{max-height:122px;overflow:auto}.top-actions{max-width:70%}}
+
+/* v6: domain relations, modal portrait containment, availability feedback */
+.dialog-image-wrap img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; object-position:center; box-sizing:border-box; }
+.dialog-image-wrap.character-portrait img { object-fit:contain; object-position:center; padding:4px; transform:none !important; }
+.domain-relation-hint { display:block; margin-top:5px; color:#8a7143; font-size:8px; line-height:1.3; font-weight:700; }
+.domain-kind-filters { display:flex; gap:6px; margin:10px 0 2px; }
+.domain-kind-filters[hidden] { display:none !important; }
+.field[hidden] { display:none !important; }
+.domain-kind-filter { border:1px solid rgba(76,95,115,.14); background:rgba(255,255,255,.42); color:#6b7b8d; border-radius:999px; padding:6px 10px; font-size:9px; font-weight:800; cursor:pointer; }
+.domain-kind-filter.active { background:#516f87; color:#fffaf0; border-color:#516f87; box-shadow:0 4px 14px rgba(50,78,101,.16); }
+.entity-card[data-entity-type="domains"] .entity-thumb { background:linear-gradient(145deg, rgba(94,151,175,.14), rgba(216,189,122,.16)); }
+.availability-note { margin-top:7px; padding:7px 9px; border-radius:9px; background:rgba(190,109,88,.10); border:1px solid rgba(190,109,88,.18); color:#9a5d52; font-size:9px; font-weight:700; }
+
+
+/* v7: domain drop icons, weapon farming days, weekly boss visual fallbacks */
+/* v8: contextual dialogs + domain-filter containment */
+.domain-drop-line { display:flex; align-items:center; gap:6px; margin-top:6px; min-width:0; color:#75623c; font-size:9px; font-weight:800; line-height:1.25; }
+.domain-drop-icon { width:26px; height:26px; flex:0 0 26px; border-radius:7px; border:1px solid rgba(158,129,72,.18); background:rgba(229,214,168,.20); display:grid; place-items:center; overflow:hidden; position:relative; }
+.domain-drop-icon img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+.domain-drop-icon .thumb-fallback { position:absolute; inset:0; display:grid; place-items:center; font-size:12px; }
+.domain-drop-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.weapon-farm-info { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:6px; }
+.farm-day-badge { display:inline-flex; align-items:center; min-height:19px; padding:3px 6px; border-radius:999px; background:rgba(81,111,135,.10); border:1px solid rgba(81,111,135,.14); color:#5f7181; font-size:8px; font-weight:900; letter-spacing:.02em; }
+.weapon-domain-name { max-width:100%; color:#8b7140; font-size:8px; font-weight:800; line-height:1.25; }
+.entity-card[data-entity-type="domains"] .entity-thumb { background:radial-gradient(circle at 50% 42%, rgba(255,249,228,.96), rgba(209,224,228,.78)); }
+.entity-card[data-entity-type="domains"] .entity-thumb img { padding:5px; box-sizing:border-box; }
+.entity-card[data-entity-type="boss"] .entity-thumb img { object-fit:contain; padding:2px; box-sizing:border-box; }
+
+
+/* v11: backup uses a modal so it can never be hidden behind the weekly summary. */
+.task-dialog .dialog-actions .dialog-cancel { color:#536372; background:rgba(81,111,135,.08); border-color:rgba(81,111,135,.22); box-shadow:none; }
+.task-dialog .dialog-actions .dialog-cancel:hover { color:#2f4658; background:rgba(81,111,135,.15); border-color:rgba(81,111,135,.34); }
+.backup-dialog { width:min(470px,calc(100% - 24px)); border:0; padding:0; background:transparent; color:#435268; z-index:9999; }
+.backup-dialog::backdrop { background:rgba(2,8,13,.72); backdrop-filter:blur(9px); }
+.backup-card { position:relative; border:1px solid rgba(158,129,72,.28); border-radius:22px; background:linear-gradient(180deg,#fbf8ee,#edf1ef); box-shadow:0 34px 110px rgba(0,0,0,.5); padding:26px; color:#435268; }
+.backup-card h2 { margin:5px 42px 8px 0; color:#3b4656; font-family:"Marcellus",serif; font-weight:400; font-size:27px; }
+.backup-card > p { margin:0; color:#718091; font-size:12px; line-height:1.55; }
+.backup-card .dialog-close { z-index:2; color:#647589; border-color:rgba(79,99,121,.18); background:rgba(255,255,255,.52); }
+.backup-dialog-actions { display:grid; gap:8px; margin-top:20px; }
+.backup-action { width:100%; min-height:46px; display:flex; align-items:center; gap:11px; padding:0 13px; border:1px solid rgba(76,95,115,.13); border-radius:11px; background:rgba(255,255,255,.52); color:#536372; font:inherit; font-size:12px; font-weight:800; cursor:pointer; text-align:left; transition:.16s ease; }
+.backup-action:hover { background:#fff; color:#31495b; border-color:rgba(158,129,72,.28); transform:translateY(-1px); }
+.backup-action.backup-primary { background:linear-gradient(180deg,#f1e4c5,#dfc98f); color:#445163; border-color:rgba(158,129,72,.28); }
+.backup-action > span:first-child { width:26px; height:26px; flex:0 0 26px; display:grid; place-items:center; border-radius:7px; background:rgba(81,111,135,.10); color:#6e8294; font-size:15px; }
+.backup-card > small { display:block; margin-top:13px; padding-top:12px; border-top:1px solid rgba(76,95,115,.10); color:#87919a; font-size:10px; line-height:1.45; }
+
+  </style>
+</head>
+<body>
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+
+  <header class="topbar shell">
+    <a class="brand" href="#" aria-label="Início do Resin Route">
+      <span class="brand-mark" aria-hidden="true">✦</span>
+      <span>
+        <strong>Resin Route</strong>
+        <small>planejador semanal de Genshin</small>
+      </span>
+    </a>
+
+    <div class="top-actions">
+      <label class="language-control" title="Idioma / Language"><span id="languageLabel">Idioma</span><select id="languageSelect" aria-label="Idioma"><option value="pt">PT-BR</option><option value="en">EN</option></select></label>
+      <button class="button ghost" id="backupOpenBtn" type="button">Backup</button>
+    </div>
+  </header>
+
+  <main class="shell app-shell">
+    <section class="hero panel">
+      <div>
+        <span class="eyebrow">SUA SEMANA EM UM OLHAR</span>
+        <h1>Use sua resina com propósito.</h1>
+        <p>Escolha o que quer farmar, defina o dia e mantenha sua rota semanal de resina sempre visível.</p>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span>Esta semana</span><strong id="weeklyTotal">0</strong><small>resina planejada</small></div>
+        <div class="stat"><span>Concluído</span><strong id="weeklyDone">0%</strong><small>das tentativas planejadas</small></div>
+        <div class="stat cap-stat"><span>Limite diário</span><strong><input id="resinCapInput" type="number" min="20" step="20" value="200" aria-label="Limite diário de resina"></strong><small>editável</small></div>
+      </div>
+    </section>
+
+    <nav id="dayTabs" class="day-tabs" aria-label="Dias da semana"></nav>
+
+    <div class="workspace">
+      <section class="planner-column panel">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">PLANO</span>
+            <h2 id="activeDayTitle">Segunda-feira</h2>
+          </div>
+          <div class="day-budget">
+            <span id="dayBudgetText">0 / 200 resina</span>
+          </div>
+        </div>
+
+        <div id="taskList" class="task-list"></div>
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">✧</div>
+          <h3>Nada planejado ainda</h3>
+          <p>Escolha algo da biblioteca do jogo ou adicione uma tarefa personalizada.</p>
+          <button class="button primary" id="emptyBrowseBtn" type="button">Ver dados do jogo</button>
+        </div>
+      </section>
+
+      <aside class="library-column panel" id="libraryPanel">
+        <div class="section-heading library-heading">
+          <div>
+            <span class="eyebrow">BIBLIOTECA DO JOGO</span>
+            <h2>Escolha o que farmar</h2>
+          </div>
+          <button class="icon-button" id="refreshDataBtn" title="Atualizar dados" aria-label="Atualizar dados do jogo">↻</button>
+        </div>
+
+        <div id="libraryTabs" class="library-tabs" role="tablist"></div>
+        <div id="domainKindFilters" class="domain-kind-filters" hidden></div>
+
+        <label class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <input id="librarySearch" type="search" placeholder="Buscar personagens…" autocomplete="off">
+        </label>
+
+        <div class="library-meta">
+          <span id="libraryCount">0 itens</span>
+          <span id="libraryHint">Clique em um item para planejá-lo</span>
+        </div>
+
+        <div id="libraryGrid" class="library-grid"></div>
+      </aside>
+    </div>
+
+    <section class="week-overview panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">VISÃO DA SEMANA</span>
+          <h2>Distribuição de resina</h2>
+        </div>
+        <button class="button ghost danger" id="clearWeekBtn" type="button">Limpar semana</button>
+      </div>
+      <div id="weekBars" class="week-bars"></div>
+    </section>
+
+    <footer class="footer">
+      <p>Ferramenta de planejamento feita por fãs. Genshin Impact e seus recursos pertencem à HoYoverse.</p>
+      <p>Os dados do seu planejamento ficam armazenados apenas neste navegador.</p>
+    </footer>
+  </main>
+
+  <dialog id="taskDialog" class="task-dialog">
+    <form method="dialog" id="taskForm" class="dialog-card">
+      <button class="dialog-close" id="closeTaskDialogBtn" type="button" aria-label="Fechar">×</button>
+      <div class="dialog-entity">
+        <div id="dialogImageWrap" class="dialog-image-wrap"><div id="dialogFallback" class="entity-fallback">✦</div><img id="dialogImage" alt="" loading="eager" decoding="async" hidden></div>
+        <div>
+          <span id="dialogType" class="entity-type">PERSONALIZADO</span>
+          <h2 id="dialogTitle">Adicionar tarefa</h2>
+          <p id="dialogSubtitle">Planeje isto para sua semana.</p>
+        </div>
+      </div>
+
+      <input type="hidden" id="entityTypeInput">
+      <input type="hidden" id="entityIdInput">
+      <input type="hidden" id="entityImageInput">
+
+      <div class="form-grid">
+        <label class="field span-2" id="taskNameField"><span>Nome da tarefa</span><input id="taskNameInput" required maxlength="80" placeholder="ex.: Farmar livros de talento"></label>
+        <label class="field"><span>Dia</span><select id="taskDayInput"></select></label>
+        <label class="field" id="taskCategoryField"><span>Categoria</span>
+          <select id="taskCategoryInput">
+            <option value="domain">Domínio</option>
+            <option value="boss">Chefe</option>
+            <option value="weekly">Chefe semanal</option>
+            <option value="leyline">Linha Ley</option>
+            <option value="artifact">Artefatos</option>
+            <option value="talent">Materiais de talento</option>
+            <option value="weapon">Materiais de arma</option>
+            <option value="character">Materiais de personagem</option>
+            <option value="route">Rota</option>
+            <option value="strongbox">Strongbox</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </label>
+
+        <label class="field span-2 character-farm-field" id="characterFarmField" hidden><span id="characterFarmLabel">O que farmar</span><select id="characterFarmInput"><option value="boss">Chefe de ascensão</option><option value="ascension">Materiais para upar</option><option value="talent" selected>Talentos</option><option value="weekly">Chefe semanal</option></select><div id="characterMaterialPreview" class="character-material-preview"></div></label>
+        <label class="field span-2" id="artifactMethodField" hidden><span id="artifactMethodLabel">Como obter este conjunto</span><select id="artifactMethodInput"><option value="domain">Farmar domínio</option><option value="strongbox">Strongbox / Oferecer Artefato</option></select><small class="artifact-method-note" id="artifactMethodNote"></small></label>
+        <label class="field"><span id="resinPerRunLabel">Resina por tentativa</span><input id="resinPerRunInput" type="number" min="0" max="200" step="5" value="20" required></label>
+        <label class="field"><span>Tentativas</span><input id="runsInput" type="number" min="1" max="99" value="1" required></label>
+        <label class="field span-2"><span>Nota <small>opcional</small></span><input id="noteInput" maxlength="120" placeholder="ex.: faltam mais 12 Filosofias"></label>
+      </div>
+
+      <div class="resin-presets" aria-label="Valores rápidos de resina">
+        <button type="button" data-resin="20">20</button>
+        <button type="button" data-resin="30">30</button>
+        <button type="button" data-resin="40">40</button>
+        <button type="button" data-resin="60">60</button>
+      </div>
+
+      <div class="dialog-summary">
+        <span>Total planejado</span>
+        <strong><span id="dialogTotal">20</span> resina</strong>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="button ghost dialog-cancel" value="cancel" type="button" id="cancelDialogBtn">Cancelar</button>
+        <button class="button primary" value="default" type="submit">Adicionar ao plano</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <dialog id="strongboxDialog" class="strongbox-dialog">
+    <div class="strongbox-card">
+      <button class="dialog-close" id="closeStrongboxBtn" type="button" aria-label="Fechar">×</button>
+      <div class="strongbox-header">
+        <span class="eyebrow" id="strongboxEyebrow">OFERECER ARTEFATO</span>
+        <h2 id="strongboxTitle">Escolha o conjunto da Strongbox</h2>
+        <p id="strongboxDescription">Escolha um conjunto disponível na Oferenda Mística. Ele será adicionado ao plano usando a miniatura do próprio conjunto e sem custo de Resina.</p>
+      </div>
+      <label class="search-box strongbox-search"><span aria-hidden="true">⌕</span><input id="strongboxSearch" type="search" autocomplete="off" placeholder="Buscar conjunto…"></label>
+      <div id="strongboxGrid" class="strongbox-grid"></div>
+    </div>
+  </dialog>
+
+  <dialog id="backupDialog" class="backup-dialog">
+    <div class="backup-card">
+      <button class="dialog-close" id="closeBackupBtn" type="button" aria-label="Fechar">×</button>
+      <span class="eyebrow" id="backupEyebrow">BACKUP</span>
+      <h2 id="backupTitle">Backup do planejamento</h2>
+      <p id="backupDescription">Baixe uma cópia do seu plano ou restaure um arquivo salvo anteriormente.</p>
+      <div class="backup-dialog-actions">
+        <button class="backup-action backup-primary" id="exportBtn" type="button"><span aria-hidden="true">⇩</span><span>Baixar backup (.json)</span></button>
+        <button class="backup-action" id="importBtn" type="button"><span aria-hidden="true">⇧</span><span class="import-label">Restaurar backup (.json)</span></button>
+        <button class="backup-action" id="copyBackupBtn" type="button"><span aria-hidden="true">⧉</span><span class="copy-backup-label">Copiar backup</span></button>
+        <input id="importInput" type="file" accept="application/json,.json" hidden>
+      </div>
+      <small id="backupHelp">O backup inclui tarefas, progresso, notas e limite diário de Resina.</small>
+    </div>
+  </dialog>
+
+  <template id="taskTemplate">
+    <article class="task-card" draggable="true">
+      <div class="task-image-wrap"><div class="task-image-fallback">✦</div><img class="task-image" alt="" hidden></div>
+      <div class="task-main">
+        <div class="task-topline"><span class="task-category"></span><span class="task-total"></span></div>
+        <h3 class="task-title"></h3>
+        <p class="task-note"></p>
+        <div class="run-controls"></div>
+      </div>
+      <div class="task-actions">
+        <button class="icon-button move-task" title="Mover para outro dia" aria-label="Mover tarefa">↗</button>
+        <button class="icon-button duplicate-task" title="Duplicar" aria-label="Duplicar tarefa">⧉</button>
+        <button class="icon-button delete-task danger-icon" title="Excluir" aria-label="Excluir tarefa">×</button>
+      </div>
+    </article>
+  </template>
+
+  <script>
+(() => {
+  'use strict';
+
+  const DB_CDN = 'https://cdn.jsdelivr.net/gh/theBowja/genshin-db-dist@main';
+  const ASSET_CDNS = [
+    filename => `https://gi.yatta.moe/assets/UI/${encodeURIComponent(cleanAssetName(filename))}.png`,
+    filename => `https://static.nanoka.cc/gi/UI/${encodeURIComponent(cleanAssetName(filename))}.webp`,
+    filename => `https://enka.network/ui/${encodeURIComponent(cleanAssetName(filename))}.png`,
+  ];
+  const STORAGE_KEY = 'resin-route-state-v1';
+  const CURRENT_STRONGBOX_MAX_VERSION = 6.0; // v7.0 includes the two artifact sets released in 6.0/Luna I.
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const DAY_NAMES = {
+    pt: { Monday:'Segunda-feira', Tuesday:'Terça-feira', Wednesday:'Quarta-feira', Thursday:'Quinta-feira', Friday:'Sexta-feira', Saturday:'Sábado', Sunday:'Domingo' },
+    en: { Monday:'Monday', Tuesday:'Tuesday', Wednesday:'Wednesday', Thursday:'Thursday', Friday:'Friday', Saturday:'Saturday', Sunday:'Sunday' },
+  };
+  const DAY_SHORT = {
+    pt: { Monday:'Seg', Tuesday:'Ter', Wednesday:'Qua', Thursday:'Qui', Friday:'Sex', Saturday:'Sáb', Sunday:'Dom' },
+    en: { Monday:'Mon', Tuesday:'Tue', Wednesday:'Wed', Thursday:'Thu', Friday:'Fri', Saturday:'Sat', Sunday:'Sun' },
+  };
+  const CATEGORY_LABELS = {
+    pt: { domain:'Domínio', boss:'Chefe', weekly:'Chefe semanal', leyline:'Linha Ley', artifact:'Artefatos', talent:'Materiais de talento', weapon:'Materiais de arma', character:'Materiais de personagem', route:'Rota', strongbox:'Strongbox', custom:'Personalizado', characters:'Personagem', weapons:'Arma', artifacts:'Conjunto de artefatos', domains:'Domínio', materials:'Material', misc:'Miscelânea' },
+    en: { domain:'Domain', boss:'Boss', weekly:'Weekly Boss', leyline:'Ley Line', artifact:'Artifacts', talent:'Talent Materials', weapon:'Weapon Materials', character:'Character Materials', route:'Route', strongbox:'Strongbox', custom:'Custom', characters:'Character', weapons:'Weapon', artifacts:'Artifact Set', domains:'Domain', materials:'Material', misc:'Miscellaneous' },
+  };
+  const I18N = {
+    pt: {
+      brandSubtitle:'planejador semanal de Genshin', language:'Idioma', export:'Baixar backup (.json)', exportImage:'Exportar imagem', import:'Restaurar backup (.json)', backup:'Backup', backupTitle:'Backup do planejamento', backupDesc:'Baixe uma cópia do seu plano ou restaure um arquivo salvo anteriormente.', backupHelp:'O backup inclui tarefas, progresso, notas e limite diário de Resina.', copyBackup:'Copiar backup', custom:'+ Tarefa personalizada',
+      heroEyebrow:'SUA SEMANA EM UM OLHAR', heroTitle:'Use sua resina com propósito.', heroText:'Escolha o que quer farmar, defina o dia e mantenha sua rota semanal de resina sempre visível.',
+      thisWeek:'Esta semana', plannedResin:'resina planejada', completed:'Concluído', attemptsPlanned:'das tentativas planejadas', dailyLimit:'Limite diário', editable:'editável',
+      plan:'PLANO', nothing:'Nada planejado ainda', nothingText:'Escolha algo da biblioteca do jogo ou adicione uma tarefa personalizada.', browse:'Ver dados do jogo',
+      gameLibrary:'BIBLIOTECA DO JOGO', chooseFarm:'Escolha o que farmar', weekView:'VISÃO DA SEMANA', resinDistribution:'Distribuição de resina', clearWeek:'Limpar semana',
+      search:'Buscar', clickPlan:'Clique em um item para planejá-lo', item:'item', items:'itens', loading:'Carregando dados do jogo…',
+      taskName:'Nome da tarefa', day:'Dia', category:'Categoria', resinPerRun:'Resina por tentativa', attempts:'Tentativas', note:'Nota', optional:'opcional', totalPlanned:'Total planejado', cancel:'Cancelar', addPlan:'Adicionar ao plano',
+      customType:'TAREFA PERSONALIZADA', customTitle:'Criar uma tarefa personalizada de resina', customSubtitle:'Adicione qualquer coisa que não esteja na biblioteca do jogo.',
+      artifactMethod:'Como obter este conjunto', farmDomain:'Farmar domínio', strongboxMethod:'Strongbox / Oferecer Artefato', strongboxAvailable:'Este conjunto está disponível na Oferenda Mística atual.', strongboxUnavailable:'Este conjunto ainda não está disponível na Oferenda Mística atual.',
+      strongboxEyebrow:'OFERECER ARTEFATO', strongboxTitle:'Escolha o conjunto da Strongbox', strongboxDesc:'Escolha um conjunto disponível na Oferenda Mística. Ele será adicionado ao plano usando a miniatura do próprio conjunto e sem custo de Resina.', strongboxSearch:'Buscar conjunto…',
+      noStrongbox:'Nenhum conjunto disponível encontrado.', noItems:'Nenhum item encontrado.', available:'Disponível', currentData:'Dados atuais do genshin-db', emergency:'Dados locais de emergência',
+      miscHint:'Rotas sem Resina, Strongbox e tarefas livres.', artifactRoute:'Rota de artefatos', artifactRouteSub:'Rota de investigação · sem Resina', moraRoute:'Rota de Mora', moraRouteSub:'Mundo aberto · sem Resina', oreRoute:'Rota de minério', oreRouteSub:'Mineração · sem Resina', strongbox:'Strongbox de artefatos', strongboxSub:'Escolher conjunto da Oferenda Mística', customMisc:'Tarefa personalizada', customMiscSub:'Adicione qualquer atividade ao seu plano',
+      routeArtifactTask:'Fazer rota de artefatos', routeMoraTask:'Fazer rota de Mora', routeOreTask:'Fazer rota de minério',
+      domainMethodSubtitle:'Farmar o domínio deste conjunto.', strongboxMethodSubtitle:'Planejar conversões na Oferenda Mística · 0 Resina.',
+      characterFarm:'O que farmar', charBoss:'Chefe de ascensão', charAscension:'Materiais para upar', charTalents:'Talentos', charWeekly:'Chefe semanal', materialPreview:'Materiais relacionados', today:'hoje', task:'tarefa', tasks:'tarefas', above:'acima', plannedTask:'tarefa planejada', plannedTasks:'tarefas planejadas', resin:'resina', refresh:'Atualizar dados', footer1:'Ferramenta de planejamento feita por fãs. Genshin Impact e seus recursos pertencem à HoYoverse.', domainSearchHint:'Busque pelo domínio, personagem ou arma', usedBy:'Usado por', unavailableDay:'Esse material não está disponível nesse dia.', availableOn:'Disponível em', talentDomain:'Domínio de talento', weaponDomain:'Domínio de arma',
+    },
+    en: {
+      brandSubtitle:'weekly Genshin planner', language:'Language', export:'Download backup (.json)', exportImage:'Export image', import:'Restore backup (.json)', backup:'Backup', backupTitle:'Planner backup', backupDesc:'Download a copy of your plan or restore a previously saved file.', backupHelp:'The backup includes tasks, progress, notes, and your daily Resin limit.', copyBackup:'Copy backup', custom:'+ Custom task',
+      heroEyebrow:'YOUR WEEK AT A GLANCE', heroTitle:'Use your Resin with purpose.', heroText:'Choose what you want to farm, set the day, and keep your weekly Resin route visible.',
+      thisWeek:'This week', plannedResin:'planned Resin', completed:'Completed', attemptsPlanned:'of planned runs', dailyLimit:'Daily limit', editable:'editable',
+      plan:'PLAN', nothing:'Nothing planned yet', nothingText:'Choose something from the game library or add a custom task.', browse:'Browse game data',
+      gameLibrary:'GAME LIBRARY', chooseFarm:'Choose what to farm', weekView:'WEEK VIEW', resinDistribution:'Resin distribution', clearWeek:'Clear week',
+      search:'Search', clickPlan:'Click an item to plan it', item:'item', items:'items', loading:'Loading game data…',
+      taskName:'Task name', day:'Day', category:'Category', resinPerRun:'Resin per run', attempts:'Runs', note:'Note', optional:'optional', totalPlanned:'Total planned', cancel:'Cancel', addPlan:'Add to plan',
+      customType:'CUSTOM TASK', customTitle:'Create a custom task', customSubtitle:'Add anything that is not in the game library.',
+      artifactMethod:'How to obtain this set', farmDomain:'Farm domain', strongboxMethod:'Artifact Strongbox / Mystic Offering', strongboxAvailable:'This set is available in the current Mystic Offering.', strongboxUnavailable:'This set is not available in the current Mystic Offering yet.',
+      strongboxEyebrow:'MYSTIC OFFERING', strongboxTitle:'Choose an Artifact Strongbox', strongboxDesc:'Choose a set available in Mystic Offering. It will be added to the plan using the set thumbnail and with no Resin cost.', strongboxSearch:'Search set…',
+      noStrongbox:'No available Strongbox set found.', noItems:'No items found.', available:'Available', currentData:'Current genshin-db data', emergency:'Emergency local data',
+      miscHint:'Resin-free routes, Strongbox and free-form tasks.', artifactRoute:'Artifact route', artifactRouteSub:'Investigation route · no Resin', moraRoute:'Mora route', moraRouteSub:'Overworld · no Resin', oreRoute:'Ore route', oreRouteSub:'Mining · no Resin', strongbox:'Artifact Strongbox', strongboxSub:'Choose a Mystic Offering set', customMisc:'Custom task', customMiscSub:'Add any activity to your plan',
+      routeArtifactTask:'Run artifact route', routeMoraTask:'Run Mora route', routeOreTask:'Run ore route',
+      domainMethodSubtitle:'Farm this set from its domain.', strongboxMethodSubtitle:'Plan Mystic Offering conversions · 0 Resin.',
+      characterFarm:'What to farm', charBoss:'Ascension boss', charAscension:'Level-up materials', charTalents:'Talents', charWeekly:'Weekly boss', materialPreview:'Related materials', today:'today', task:'task', tasks:'tasks', above:'over', plannedTask:'planned task', plannedTasks:'planned tasks', resin:'Resin', refresh:'Refresh data', footer1:'Fan-made planning tool. Genshin Impact and its assets belong to HoYoverse.', domainSearchHint:'Search by domain, character, or weapon', usedBy:'Used by', unavailableDay:'This material is not available on that day.', availableOn:'Available on', talentDomain:'Talent domain', weaponDomain:'Weapon domain',
+    }
+  };
+  const LIBRARY_TYPES = [
+    { id:'characters', label:'Personagens', labelEn:'Characters', singular:'Personagem', singularEn:'Character', folder:'characters' },
+    { id:'weapons', label:'Armas', labelEn:'Weapons', singular:'Arma', singularEn:'Weapon', folder:'weapons' },
+    { id:'artifacts', label:'Artefatos', labelEn:'Artifacts', singular:'Conjunto de artefatos', singularEn:'Artifact Set', folder:'artifacts' },
+    { id:'domains', label:'Domínios', labelEn:'Domains', singular:'Talento / Arma', singularEn:'Talent / Weapon', folder:'domains' },
+    { id:'boss', label:'Semanais', labelEn:'Weekly Bosses', singular:'Chefe semanal', singularEn:'Weekly Boss', folder:'enemies' },
+    { id:'misc', label:'Miscelânea', labelEn:'Misc', singular:'Miscelânea', singularEn:'Miscellaneous', folder:null },
+  ];
+
+  const state = loadState();
+  const libraryCache = new Map();
+  const loadedDataScripts = new Set();
+  const scriptPromises = new Map();
+  const folderLanguages = new Map();
+  let activeLibraryType = 'characters';
+  let activeDomainKind = 'all';
+  let activeDay = state.activeDay || getTodayName();
+  if (!DAYS.includes(activeDay)) activeDay = 'Monday';
+  let draggedTaskId = null;
+  let dialogEntity = null;
+  let dialogOptions = {};
+  let dialogAllowedDays = [];
+  let dialogAvailabilityContext = '';
+  let dialogAvailabilityPromise = Promise.resolve();
+  let toastTimer = null;
+
+  const el = {
+    dayTabs: document.querySelector('#dayTabs'),
+    taskList: document.querySelector('#taskList'),
+    emptyState: document.querySelector('#emptyState'),
+    activeDayTitle: document.querySelector('#activeDayTitle'),
+    weeklyTotal: document.querySelector('#weeklyTotal'),
+    weeklyDone: document.querySelector('#weeklyDone'),
+    resinCapInput: document.querySelector('#resinCapInput'),
+    dayBudgetText: document.querySelector('#dayBudgetText'),
+    dayBudgetBar: document.querySelector('#dayBudgetBar'),
+    weekBars: document.querySelector('#weekBars'),
+    libraryTabs: document.querySelector('#libraryTabs'),
+    domainKindFilters: document.querySelector('#domainKindFilters'),
+    librarySearch: document.querySelector('#librarySearch'),
+    libraryGrid: document.querySelector('#libraryGrid'),
+    libraryCount: document.querySelector('#libraryCount'),
+    libraryHint: document.querySelector('#libraryHint'),
+    languageSelect: document.querySelector('#languageSelect'),
+    languageLabel: document.querySelector('#languageLabel'),
+    libraryPanel: document.querySelector('#libraryPanel'),
+    refreshDataBtn: document.querySelector('#refreshDataBtn'),
+    backupDialog: document.querySelector('#backupDialog'),
+    backupOpenBtn: document.querySelector('#backupOpenBtn'),
+    closeBackupBtn: document.querySelector('#closeBackupBtn'),
+    exportBtn: document.querySelector('#exportBtn'),
+    importBtn: document.querySelector('#importBtn'),
+    importInput: document.querySelector('#importInput'),
+    copyBackupBtn: document.querySelector('#copyBackupBtn'),
+    emptyBrowseBtn: document.querySelector('#emptyBrowseBtn'),
+    clearWeekBtn: document.querySelector('#clearWeekBtn'),
+    taskDialog: document.querySelector('#taskDialog'),
+    taskForm: document.querySelector('#taskForm'),
+    closeTaskDialogBtn: document.querySelector('#closeTaskDialogBtn'),
+    dialogImage: document.querySelector('#dialogImage'),
+    dialogFallback: document.querySelector('#dialogFallback'),
+    dialogType: document.querySelector('#dialogType'),
+    dialogTitle: document.querySelector('#dialogTitle'),
+    dialogSubtitle: document.querySelector('#dialogSubtitle'),
+    taskNameField: document.querySelector('#taskNameField'),
+    taskNameInput: document.querySelector('#taskNameInput'),
+    taskDayInput: document.querySelector('#taskDayInput'),
+    taskCategoryField: document.querySelector('#taskCategoryField'),
+    taskCategoryInput: document.querySelector('#taskCategoryInput'),
+    artifactMethodField: document.querySelector('#artifactMethodField'),
+    artifactMethodInput: document.querySelector('#artifactMethodInput'),
+    artifactMethodLabel: document.querySelector('#artifactMethodLabel'),
+    artifactMethodNote: document.querySelector('#artifactMethodNote'),
+    characterFarmField: document.querySelector('#characterFarmField'),
+    characterFarmInput: document.querySelector('#characterFarmInput'),
+    characterMaterialPreview: document.querySelector('#characterMaterialPreview'),
+    resinPerRunInput: document.querySelector('#resinPerRunInput'),
+    runsInput: document.querySelector('#runsInput'),
+    noteInput: document.querySelector('#noteInput'),
+    entityTypeInput: document.querySelector('#entityTypeInput'),
+    entityIdInput: document.querySelector('#entityIdInput'),
+    entityImageInput: document.querySelector('#entityImageInput'),
+    dialogTotal: document.querySelector('#dialogTotal'),
+    cancelDialogBtn: document.querySelector('#cancelDialogBtn'),
+    strongboxDialog: document.querySelector('#strongboxDialog'),
+    strongboxGrid: document.querySelector('#strongboxGrid'),
+    strongboxSearch: document.querySelector('#strongboxSearch'),
+    closeStrongboxBtn: document.querySelector('#closeStrongboxBtn'),
+    taskTemplate: document.querySelector('#taskTemplate'),
+  };
+
+  init();
+
+  function init() {
+    seedFallbackLibraries();
+    setApiStatus('fallback');
+    el.languageSelect.value = state.lang || 'pt';
+    applyLanguage();
+    el.resinCapInput.value = state.resinCap;
+    el.taskDayInput.innerHTML = DAYS.map(day => `<option value="${day}">${dayLabel(day)}</option>`).join('');
+    renderLibraryTabs();
+    bindEvents();
+    renderAll();
+    renderLibraryGrid(activeLibraryType);
+    loadLibrary(activeLibraryType);
+  }
+
+  function defaultState() {
+    return {
+      resinCap: 200,
+      lang: 'pt',
+      activeDay: getTodayName(),
+      tasks: DAYS.reduce((acc, day) => (acc[day] = [], acc), {}),
+    };
+  }
+
+  function loadState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (!saved || typeof saved !== 'object') return defaultState();
+      const base = defaultState();
+      return {
+        ...base,
+        ...saved,
+        resinCap: Number(saved.resinCap) || 200,
+        lang: saved.lang === 'en' ? 'en' : 'pt',
+        tasks: DAYS.reduce((acc, day) => {
+          acc[day] = Array.isArray(saved.tasks?.[day]) ? saved.tasks[day] : [];
+          return acc;
+        }, {}),
+      };
+    } catch {
+      return defaultState();
+    }
+  }
+
+  function saveState() {
+    state.activeDay = activeDay;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function bindEvents() {
+    el.languageSelect.addEventListener('change', changeLanguage);
+    el.dayTabs.addEventListener('click', event => {
+      const btn = event.target.closest('[data-day]');
+      if (!btn) return;
+      activeDay = btn.dataset.day;
+      saveState();
+      renderAll();
+    });
+
+    el.libraryTabs.addEventListener('click', event => {
+      const btn = event.target.closest('[data-library-type]');
+      if (!btn) return;
+      activeLibraryType = btn.dataset.libraryType;
+      if (activeLibraryType !== 'domains') activeDomainKind = 'all';
+      el.librarySearch.value = '';
+      renderLibraryTabs();
+      loadLibrary(activeLibraryType);
+    });
+    el.domainKindFilters.addEventListener('click', event => {
+      const btn = event.target.closest('[data-domain-kind]');
+      if (!btn) return;
+      activeDomainKind = btn.dataset.domainKind;
+      renderDomainKindFilters();
+      renderLibraryGrid('domains');
+    });
+
+    el.librarySearch.addEventListener('input', () => renderLibraryGrid(activeLibraryType));
+    el.refreshDataBtn.addEventListener('click', () => {
+      libraryCache.delete(activeLibraryType);
+      loadLibrary(activeLibraryType, true);
+    });
+
+    el.libraryGrid.addEventListener('click', event => {
+      const card = event.target.closest('.entity-card');
+      if (!card) return;
+      const items = libraryCache.get(activeLibraryType) || [];
+      const entity = items.find(item => item.id === card.dataset.id);
+      if (!entity) return;
+      if (entity.action === 'strongbox') openStrongboxDialog();
+      else if (entity.action === 'custom') openTaskDialog(null);
+      else openTaskDialog(entity);
+    });
+
+    el.emptyBrowseBtn.addEventListener('click', () => el.libraryPanel.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+
+    el.resinCapInput.addEventListener('change', () => {
+      const next = clamp(Number(el.resinCapInput.value) || 200, 20, 2000);
+      state.resinCap = next;
+      el.resinCapInput.value = next;
+      saveState();
+      renderAll();
+    });
+
+    el.taskList.addEventListener('click', handleTaskListClick);
+    el.taskList.addEventListener('dragstart', event => {
+      const card = event.target.closest('.task-card');
+      if (!card) return;
+      draggedTaskId = card.dataset.taskId;
+      card.classList.add('dragging');
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', draggedTaskId);
+    });
+    el.taskList.addEventListener('dragend', event => {
+      event.target.closest('.task-card')?.classList.remove('dragging');
+      draggedTaskId = null;
+    });
+
+    el.taskForm.addEventListener('submit', event => {
+      event.preventDefault();
+      if (event.submitter?.value === 'cancel') { el.taskDialog.close(); return; }
+      addTaskFromDialog();
+    });
+    el.closeTaskDialogBtn.addEventListener('click', () => el.taskDialog.close());
+    el.cancelDialogBtn.addEventListener('click', () => el.taskDialog.close());
+    el.taskDialog.addEventListener('click', event => { if (event.target === el.taskDialog) el.taskDialog.close(); });
+    el.taskDayInput.addEventListener('change', () => {
+      if (dialogAllowedDays.length && !dialogAllowedDays.includes(el.taskDayInput.value)) showAvailabilityError(el.taskDayInput.value);
+    });
+    document.querySelectorAll('[data-resin]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.resinPerRunInput.value = btn.dataset.resin;
+        updateDialogTotal();
+      });
+    });
+    el.artifactMethodInput.addEventListener('change', applyArtifactMethod);
+    el.characterFarmInput.addEventListener('change', () => { applyCharacterFarmMode(); populateCharacterMaterialPreview(dialogEntity); dialogAvailabilityPromise = applyRelatedDomainAvailability(dialogEntity, el.characterFarmInput.value); });
+    el.resinPerRunInput.addEventListener('input', updateDialogTotal);
+    el.runsInput.addEventListener('input', updateDialogTotal);
+
+    el.closeStrongboxBtn.addEventListener('click', () => el.strongboxDialog.close());
+    el.strongboxSearch.addEventListener('input', renderStrongboxGrid);
+    el.strongboxGrid.addEventListener('click', event => {
+      const card = event.target.closest('.entity-card');
+      if (!card) return;
+      const artifacts = libraryCache.get('artifacts') || [];
+      const entity = artifacts.find(item => item.id === card.dataset.id);
+      if (!entity) return;
+      el.strongboxDialog.close();
+      openTaskDialog(entity, { artifactMethod: 'strongbox' });
+    });
+
+    el.backupOpenBtn.addEventListener('click', () => el.backupDialog.showModal());
+    el.closeBackupBtn.addEventListener('click', () => el.backupDialog.close());
+    el.backupDialog.addEventListener('click', event => { if (event.target === el.backupDialog) el.backupDialog.close(); });
+    el.exportBtn.addEventListener('click', exportPlanner);
+    el.importBtn.addEventListener('click', () => el.importInput.click());
+    el.copyBackupBtn.addEventListener('click', copyPlannerBackup);
+    el.importInput.addEventListener('change', importPlanner);
+    el.clearWeekBtn.addEventListener('click', clearWeek);
+  }
+
+  function renderAll() {
+    renderDayTabs();
+    renderTasks();
+    renderSummary();
+    renderWeekBars();
+  }
+
+  function renderDayTabs() {
+    const today = getTodayName();
+    el.dayTabs.innerHTML = DAYS.map(day => {
+      const total = totalForDay(day);
+      const percent = Math.min(100, (total / state.resinCap) * 100 || 0);
+      return `
+        <button type="button" class="day-tab ${day === activeDay ? 'active' : ''} ${day === today ? 'today' : ''}" data-day="${day}">
+          <span class="day-name">${dayShort(day)}</span>
+          <span class="day-resin"><span>${state.tasks[day].length} ${state.tasks[day].length === 1 ? tr('task') : tr('tasks')}</span><strong>${total}</strong></span>
+        </button>`;
+    }).join('');
+  }
+
+  function renderTasks() {
+    const tasks = state.tasks[activeDay];
+    el.activeDayTitle.textContent = dayLabel(activeDay);
+    el.taskList.innerHTML = '';
+    el.emptyState.hidden = tasks.length > 0;
+
+    tasks.forEach(task => {
+      const node = el.taskTemplate.content.firstElementChild.cloneNode(true);
+      node.dataset.taskId = task.id;
+      node.querySelector('.task-category').textContent = categoryLabel(task.category || task.entityType || 'custom');
+      node.querySelector('.task-total').textContent = `${task.resinPerRun * task.runs} ${tr('resin')}`;
+      node.querySelector('.task-title').textContent = task.name;
+      const note = node.querySelector('.task-note');
+      note.textContent = task.note || `${task.runs} ${task.runs === 1 ? (state.lang === 'en' ? 'run' : 'tentativa') : (state.lang === 'en' ? 'runs' : 'tentativas')} × ${task.resinPerRun} ${tr('resin')}`;
+
+      node.querySelector('.move-task').title = state.lang === 'en' ? 'Move to another day' : 'Mover para outro dia';
+      node.querySelector('.duplicate-task').title = state.lang === 'en' ? 'Duplicate' : 'Duplicar';
+      node.querySelector('.delete-task').title = state.lang === 'en' ? 'Delete' : 'Excluir';
+      const img = node.querySelector('.task-image');
+      const fallback = node.querySelector('.task-image-fallback');
+      setSafeImage(img, fallback, task.imageUrls || task.imageUrl, task.name);
+
+      const runControls = node.querySelector('.run-controls');
+      const visibleDots = Math.min(task.runs, 12);
+      for (let i = 0; i < visibleDots; i++) {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = `run-dot ${i < task.doneRuns ? 'done' : ''}`;
+        dot.dataset.runIndex = String(i);
+        dot.title = i < task.doneRuns ? (state.lang === 'en' ? 'Mark this run as pending' : 'Marcar esta tentativa como pendente') : (state.lang === 'en' ? 'Mark this run as complete' : 'Marcar esta tentativa como concluída');
+        dot.setAttribute('aria-label', dot.title);
+        runControls.appendChild(dot);
+      }
+      if (task.runs > 12) {
+        const count = document.createElement('span');
+        count.className = 'run-count';
+        count.textContent = `${task.doneRuns}/${task.runs} ${state.lang === 'en' ? 'done' : 'concluídas'}`;
+        runControls.appendChild(count);
+      }
+      el.taskList.appendChild(node);
+    });
+  }
+
+  function handleTaskListClick(event) {
+    const card = event.target.closest('.task-card');
+    if (!card) return;
+    const task = state.tasks[activeDay].find(item => item.id === card.dataset.taskId);
+    if (!task) return;
+
+    const dot = event.target.closest('.run-dot');
+    if (dot) {
+      const index = Number(dot.dataset.runIndex);
+      task.doneRuns = index < task.doneRuns ? index : index + 1;
+      saveState();
+      renderAll();
+      return;
+    }
+
+    if (event.target.closest('.delete-task')) {
+      state.tasks[activeDay] = state.tasks[activeDay].filter(item => item.id !== task.id);
+      saveState();
+      renderAll();
+      toast(state.lang === 'en' ? 'Task removed' : 'Tarefa removida');
+      return;
+    }
+
+    if (event.target.closest('.duplicate-task')) {
+      state.tasks[activeDay].push({ ...task, id: uid(), doneRuns: 0 });
+      saveState();
+      renderAll();
+      toast(state.lang === 'en' ? 'Task duplicated' : 'Tarefa duplicada');
+      return;
+    }
+
+    if (event.target.closest('.move-task')) {
+      const nextDay = prompt(`Mover para qual dia?\n${DAYS.map(dayLabel).join(', ')}`, dayLabel(activeDay));
+      if (!nextDay) return;
+      const normalized = normalizeDayInput(nextDay);
+      if (!normalized || normalized === activeDay) {
+        if (!normalized) toast(state.lang === 'en' ? 'Day not recognized' : 'Dia não reconhecido');
+        return;
+      }
+      state.tasks[activeDay] = state.tasks[activeDay].filter(item => item.id !== task.id);
+      state.tasks[normalized].push(task);
+      saveState();
+      renderAll();
+      toast(state.lang === 'en' ? `Moved to ${dayLabel(normalized)}` : `Movido para ${dayLabel(normalized)}`);
+    }
+  }
+
+  function renderSummary() {
+    const total = DAYS.reduce((sum, day) => sum + totalForDay(day), 0);
+    const totalRuns = DAYS.reduce((sum, day) => sum + state.tasks[day].reduce((a, t) => a + t.runs, 0), 0);
+    const doneRuns = DAYS.reduce((sum, day) => sum + state.tasks[day].reduce((a, t) => a + (t.doneRuns || 0), 0), 0);
+    const dayTotal = totalForDay(activeDay);
+    const percent = Math.min(100, (dayTotal / state.resinCap) * 100 || 0);
+
+    el.weeklyTotal.textContent = formatNumber(total);
+    el.weeklyDone.textContent = `${totalRuns ? Math.round((doneRuns / totalRuns) * 100) : 0}%`;
+    el.dayBudgetText.textContent = `${dayTotal} / ${state.resinCap} ${tr('resin')}${dayTotal > state.resinCap ? ` · +${dayTotal - state.resinCap} ${tr('above')}` : ''}`;
+    if (el.dayBudgetBar) {
+      el.dayBudgetBar.style.width = `${percent}%`;
+      el.dayBudgetBar.classList.toggle('over', dayTotal > state.resinCap);
+    }
+  }
+
+  function renderWeekBars() {
+    const max = Math.max(state.resinCap, ...DAYS.map(totalForDay));
+    el.weekBars.innerHTML = DAYS.map(day => {
+      const total = totalForDay(day);
+      const height = Math.max(total ? 4 : 0, (total / max) * 100);
+      return `
+        <div class="week-bar-card">
+          <header><span>${dayShort(day)}</span><strong>${total}</strong></header>
+          <div class="vertical-bar"><span style="height:${height}%"></span></div>
+          <small>${state.tasks[day].length} ${state.tasks[day].length === 1 ? tr('plannedTask') : tr('plannedTasks')}</small>
+        </div>`;
+    }).join('');
+  }
+
+  function renderLibraryTabs() {
+    el.libraryTabs.innerHTML = LIBRARY_TYPES.map(type => `
+      <button class="library-tab ${type.id === activeLibraryType ? 'active' : ''}" type="button" data-library-type="${type.id}" role="tab">${escapeHtml(libraryLabel(type))}</button>
+    `).join('');
+    const meta = LIBRARY_TYPES.find(type => type.id === activeLibraryType);
+    el.librarySearch.placeholder = activeLibraryType === 'domains' ? `${tr('domainSearchHint')}…` : `${tr('search')} ${String(libraryLabel(meta) || tr('items')).toLowerCase()}…`;
+    const showDomainFilters = activeLibraryType === 'domains';
+    el.domainKindFilters.hidden = !showDomainFilters;
+    el.domainKindFilters.style.display = showDomainFilters ? 'flex' : 'none';
+    if (showDomainFilters) renderDomainKindFilters();
+  }
+
+  function renderDomainKindFilters() {
+    const labels = state.lang === 'en'
+      ? { all:'All', talent:'Talents', weapon:'Weapons' }
+      : { all:'Todos', talent:'Talentos', weapon:'Armas' };
+    el.domainKindFilters.innerHTML = ['all','talent','weapon'].map(kind => `<button type="button" class="domain-kind-filter ${activeDomainKind===kind?'active':''}" data-domain-kind="${kind}">${labels[kind]}</button>`).join('');
+  }
+
+  function setApiStatus() { /* status técnico mantido apenas internamente; sem UI */ }
+
+  function seedFallbackLibraries() {
+    LIBRARY_TYPES.forEach(({ id }) => {
+      if (!libraryCache.has(id)) libraryCache.set(id, fallbackEntries(id));
+    });
+  }
+
+  async function loadLibrary(type, force = false) {
+    const meta = LIBRARY_TYPES.find(item => item.id === type);
+    if (!meta) return;
+
+    if (type === 'misc') {
+      libraryCache.set('misc', miscEntries());
+      if (activeLibraryType === 'misc') renderLibraryGrid('misc');
+      el.libraryHint.textContent = tr('miscHint');
+      return;
+    }
+
+    if (!libraryCache.has(type)) libraryCache.set(type, fallbackEntries(type));
+    if (activeLibraryType === type) renderLibraryGrid(type);
+
+    const cached = libraryCache.get(type);
+    if (!force && cached?._liveLoaded && cached?._lang === state.lang) return;
+    // Sincroniza os dados silenciosamente; a biblioteca permanece utilizável durante a atualização.
+
+    try {
+      await ensureGenshinDbFolder(meta.folder, force);
+      const db = window.GenshinDb;
+      if (!db || typeof db[meta.folder] !== 'function') throw new Error(`genshin-db folder unavailable: ${meta.folder}`);
+
+      const query = meta.categoryQuery || 'names';
+      const dataLanguage = folderLanguages.get(`${state.lang}:${meta.folder}`) || (state.lang === 'en' ? 'English' : 'Portuguese');
+      const queryOptions = { matchCategories:true, verboseCategories:true, queryLanguages:[dataLanguage], resultLanguage:dataLanguage };
+      let rawItems = db[meta.folder](query, queryOptions);
+      if (!Array.isArray(rawItems)) rawItems = rawItems ? [rawItems] : [];
+      if (rawItems.length && typeof rawItems[0] === 'string') {
+        rawItems = rawItems.map(name => db[meta.folder](name, { queryLanguages:[dataLanguage], resultLanguage:dataLanguage })).filter(Boolean);
+      }
+
+      if (type === 'domains') rawItems = groupDomainChallenges(rawItems).filter(isResinMaterialDomain);
+      if (type === 'boss') {
+        await ensureGenshinDbFolder('talents', force);
+        const weeklyDropIds = getWeeklyTalentDropIds(db, dataLanguage);
+        rawItems = rawItems.filter(item => isWeeklyBoss(item, weeklyDropIds));
+      }
+
+      const items = rawItems.map(item => normalizeDbEntity(type, item, meta)).filter(item => item?.name).sort((a,b) => a.name.localeCompare(b.name));
+      if (type === 'domains') {
+        await hydrateDomainDropIcons(items, force);
+        await hydrateDomainRelations(items, force);
+      }
+      if (type === 'weapons') await hydrateWeaponDomainLinks(items, force);
+      if (type === 'boss') await hydrateWeeklyBossVisuals(items, force);
+      if (!items.length) throw new Error(`No ${type} returned by current database`);
+      Object.defineProperty(items, '_liveLoaded', { value:true, enumerable:false });
+      Object.defineProperty(items, '_lang', { value:state.lang, enumerable:false });
+      libraryCache.set(type, items);
+      refreshSavedTaskImages(type, items);
+      if (activeLibraryType === type) renderLibraryGrid(type);
+      setApiStatus('online', tr('currentData'));
+      if (activeLibraryType === type) el.libraryHint.textContent = `${items.length} ${tr('items')} · ${tr('clickPlan')}`;
+    } catch (error) {
+      console.warn('Current Genshin database load failed:', type, error);
+      if (!libraryCache.has(type) || !libraryCache.get(type).length) libraryCache.set(type, fallbackEntries(type));
+      if (activeLibraryType === type) {
+        renderLibraryGrid(type);
+        el.libraryHint.textContent = state.lang === 'en' ? 'Could not reach the current database · local data is still available' : 'Não foi possível acessar o banco atual · os dados locais continuam disponíveis';
+      }
+      setApiStatus('offline', tr('emergency'));
+    }
+  }
+
+  async function ensureGenshinDbFolder(folder, force = false) {
+    await loadExternalScript(`${DB_CDN}/genshindb-nodata.js`, 'genshindb-core', force);
+    if (!window.GenshinDb) throw new Error('genshin-db core did not initialize');
+
+    const preferred = state.lang === 'en' ? 'English' : 'Portuguese';
+    const preferredKey = `${preferred.toLowerCase()}-${folder}`;
+    try {
+      if (force || !loadedDataScripts.has(preferredKey)) {
+        await loadExternalScript(`${DB_CDN}/data/scripts/${preferred.toLowerCase()}-${folder}.js`, `genshindb-${preferredKey}`, force);
+        loadedDataScripts.add(preferredKey);
+      }
+      folderLanguages.set(`${state.lang}:${folder}`, preferred);
+    } catch (error) {
+      if (preferred === 'English') throw error;
+      const fallbackKey = `english-${folder}`;
+      if (force || !loadedDataScripts.has(fallbackKey)) {
+        await loadExternalScript(`${DB_CDN}/data/scripts/english-${folder}.js`, `genshindb-${fallbackKey}`, force);
+        loadedDataScripts.add(fallbackKey);
+      }
+      folderLanguages.set(`${state.lang}:${folder}`, 'English');
+    }
+  }
+
+  function loadExternalScript(src, key, force = false) {
+    if (!force && key === 'genshindb-core' && window.GenshinDb) return Promise.resolve();
+    if (!force && scriptPromises.has(key)) return scriptPromises.get(key);
+
+    const promise = new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[data-genshin-script="${key}"]`);
+      if (existing && force) existing.remove();
+      else if (existing?.dataset.loaded === 'true') return resolve();
+
+      const script = document.createElement('script');
+      script.src = `${src}${force ? `${src.includes('?') ? '&' : '?'}t=${Date.now()}` : ''}`;
+      script.async = true;
+      script.dataset.genshinScript = key;
+      const timer = setTimeout(() => { script.remove(); reject(new Error(`Timed out loading ${key}`)); }, 12000);
+      script.onload = () => { clearTimeout(timer); script.dataset.loaded='true'; resolve(); };
+      script.onerror = () => { clearTimeout(timer); script.remove(); reject(new Error(`Failed to load ${key}`)); };
+      document.head.appendChild(script);
+    }).finally(() => scriptPromises.delete(key));
+    scriptPromises.set(key, promise);
+    return promise;
+  }
+
+  function groupDomainChallenges(items) {
+    const map = new Map();
+    for (const item of items) {
+      const baseName = String(item.name || '')
+        .replace(/\s+(?:I|II|III|IV|V|VI)$/i, '')
+        .trim();
+      const key = `${baseName}|${item.entranceName || item.domainentrance || ''}`;
+      const current = map.get(key);
+      if (!current || Number(item.recommendedLevel || item.recommendedlevel || 0) >= Number(current.recommendedLevel || current.recommendedlevel || 0)) {
+        const mergedDays = [...new Set([...(current?.daysOfWeek || current?.daysofweek || []), ...(item.daysOfWeek || item.daysofweek || [])])];
+        map.set(key, { ...item, name: baseName || item.name, daysOfWeek: mergedDays });
+      } else {
+        current.daysOfWeek = [...new Set([...(current.daysOfWeek || []), ...(item.daysOfWeek || item.daysofweek || [])])];
+      }
+    }
+    return [...map.values()];
+  }
+
+  function isResinMaterialDomain(item) {
+    const type = String(item.domainType || item.domaintype || '').toUpperCase();
+    return type.includes('WEAPON_PROMOTE') || type.includes('AVATAR_PROUD');
+  }
+
+  function collectMaterialIds(value, out = new Set()) {
+    if (!value) return out;
+    if (Array.isArray(value)) { value.forEach(v => collectMaterialIds(v, out)); return out; }
+    if (typeof value === 'object') {
+      if (value.id !== undefined && value.id !== null) out.add(String(value.id));
+      Object.values(value).forEach(v => collectMaterialIds(v, out));
+    }
+    return out;
+  }
+
+  function domainRewardIds(entity) {
+    const raw = entity?.raw || entity || {};
+    return collectMaterialIds(raw.rewardPreview || raw.rewardpreview || raw.rewards || raw.reward || []);
+  }
+
+  function domainRewardEntries(entity) {
+    const raw = entity?.raw || entity || {};
+    const rewards = raw.rewardPreview || raw.rewardpreview || raw.rewards || raw.reward || [];
+    const out = [];
+    const visit = value => {
+      if (!value) return;
+      if (Array.isArray(value)) return value.forEach(visit);
+      if (typeof value !== 'object') return;
+      if (value.id !== undefined || value.name) out.push(value);
+      else Object.values(value).forEach(visit);
+    };
+    visit(rewards);
+    return out;
+  }
+
+  function materialLooksLikeDomainDrop(material, kind) {
+    if (!material) return false;
+    const text = `${material.name || ''} ${material.typeText || ''} ${material.materialtype || ''} ${material.type || ''}`.toLowerCase();
+    if (/mora|adventure exp|companionship|amizade|enhancement ore|minério de aprimoramento|character exp|exp do personagem/.test(text)) return false;
+    if (kind === 'talent') return /talent|talento|teachings|ensinamentos|guide|guia|philosoph|filosof/.test(text) || Number(material.rarity || 0) >= 2;
+    if (kind === 'weapon') return /weapon|arma|ascension|ascensão|decarabian|boreal|dandelion|guyun|mist veiled|aerosiderite|narukami|mask|coral|talisman|echo|oasis|scorching|sacred dew|night-wind|blazing|delirious|artful|long night|far-north|mistshroud/.test(text) || Number(material.rarity || 0) >= 2;
+    return true;
+  }
+
+  async function hydrateDomainDropIcons(items, force = false) {
+    if (!items?.length) return;
+    try {
+      await ensureGenshinDbFolder('materials', force);
+      const db = window.GenshinDb;
+      const lang = folderLanguages.get(`${state.lang}:materials`) || (state.lang === 'en' ? 'English' : 'Portuguese');
+      const opts = { matchCategories:true, verboseCategories:true, queryLanguages:[lang], resultLanguage:lang };
+      let all = db.materials?.('names', opts) || [];
+      if (!Array.isArray(all)) all = all ? [all] : [];
+      if (all.length && typeof all[0] === 'string') all = all.map(name => db.materials(name, { queryLanguages:[lang], resultLanguage:lang })).filter(Boolean);
+      const byId = new Map(all.map(mat => [String(mat.id), mat]));
+      const byName = new Map(all.map(mat => [String(mat.name || '').toLowerCase(), mat]));
+
+      for (const domain of items) {
+        const rewards = domainRewardEntries(domain);
+        const kind = domain.domainKind || (String(domain.raw?.domainType || '').toUpperCase().includes('WEAPON_PROMOTE') ? 'weapon' : 'talent');
+        let mats = rewards.map(reward => byId.get(String(reward.id)) || byName.get(String(reward.name || '').toLowerCase())).filter(Boolean);
+        mats = mats.filter(mat => materialLooksLikeDomainDrop(mat, kind));
+        const unique = [];
+        const seen = new Set();
+        for (const mat of mats.sort((a,b)=>Number(b.rarity||0)-Number(a.rarity||0))) {
+          const family = String(mat.name || mat.id).replace(/^(Teachings|Guide|Philosophies|Ensinamentos|Guia|Filosofias) (of|de|da|do) /i,'').toLowerCase();
+          if (seen.has(family)) continue;
+          seen.add(family);
+          unique.push(mat);
+        }
+        const main = unique[0] || mats[0];
+        domain.dropItems = unique.slice(0,3).map(mat => ({ id:String(mat.id || ''), name:mat.name || '', rarity:Number(mat.rarity||0), imageUrls:resolveImageUrls('materials', mat) }));
+        if (main) {
+          const urls = resolveImageUrls('materials', main);
+          if (urls.length) { domain.imageUrls = urls; domain.imageUrl = urls[0]; }
+          domain.primaryDropName = main.name || '';
+          domain.searchAliases = `${domain.searchAliases || ''} ${main.name || ''}`.trim();
+        }
+      }
+    } catch (error) {
+      console.warn('Could not hydrate domain drop icons', error);
+    }
+  }
+
+  async function hydrateWeaponDomainLinks(items, force = false) {
+    if (!items?.length) return;
+    try {
+      await ensureGenshinDbFolder('domains', force);
+      const db = window.GenshinDb;
+      const lang = folderLanguages.get(`${state.lang}:domains`) || (state.lang === 'en' ? 'English' : 'Portuguese');
+      const opts = { matchCategories:true, verboseCategories:true, queryLanguages:[lang], resultLanguage:lang };
+      let rawDomains = db.domains?.('names', opts) || [];
+      if (!Array.isArray(rawDomains)) rawDomains = rawDomains ? [rawDomains] : [];
+      if (rawDomains.length && typeof rawDomains[0] === 'string') rawDomains = rawDomains.map(name => db.domains(name, { queryLanguages:[lang], resultLanguage:lang })).filter(Boolean);
+      const domains = groupDomainChallenges(rawDomains).filter(isResinMaterialDomain).filter(raw => String(raw.domainType || raw.domaintype || '').toUpperCase().includes('WEAPON_PROMOTE'));
+      const info = domains.map(raw => ({ raw, ids:domainRewardIds(raw), name:domainDisplayName('domains', raw.name || raw.fullname || ''), days:normalizeAvailableDays(raw.daysOfWeek || raw.daysofweek || []) }));
+      for (const weapon of items) {
+        const ids = collectMaterialIds(weapon.raw?.costs || weapon.raw?.ascensionCosts || weapon.raw?.ascensioncosts || {});
+        const match = info.find(domain => intersectsSet(ids, domain.ids));
+        if (!match) continue;
+        weapon.relatedDomainName = match.name;
+        weapon.daysOfWeek = match.days;
+        weapon.searchAliases = `${weapon.searchAliases || ''} ${match.name}`.trim();
+        const dayText = match.days.length ? match.days.map(dayShort).join('/') : '';
+        if (dayText && !String(weapon.subtitle || '').includes(dayText)) weapon.subtitle = `${weapon.subtitle}${weapon.subtitle ? ' · ' : ''}${dayText}`;
+      }
+    } catch (error) {
+      console.warn('Could not connect weapons to farming domains', error);
+    }
+  }
+
+  function inferredBossAssetNames(raw) {
+    const ids = new Set();
+    const add = value => {
+      if (value === undefined || value === null) return;
+      const text = String(value);
+      if (/^\d{4,}$/.test(text)) ids.add(text);
+    };
+    ['id','monsterId','monsterid','enemyId','enemyid','monsterID','enemyID'].forEach(key => add(raw?.[key]));
+    const out = [];
+    for (const id of ids) {
+      out.push(`UI_MonsterIcon_${id}`, `UI_MonsterIcon_${id}_01`, `UI_MonsterIcon_${id}_1`);
+    }
+    return out;
+  }
+
+  async function hydrateWeeklyBossVisuals(items, force = false) {
+    if (!items?.length) return;
+    try {
+      await ensureGenshinDbFolder('materials', force);
+      const db = window.GenshinDb;
+      const lang = folderLanguages.get(`${state.lang}:materials`) || (state.lang === 'en' ? 'English' : 'Portuguese');
+      const opts = { matchCategories:true, verboseCategories:true, queryLanguages:[lang], resultLanguage:lang };
+      let mats = db.materials?.('names', opts) || [];
+      if (!Array.isArray(mats)) mats = mats ? [mats] : [];
+      if (mats.length && typeof mats[0] === 'string') mats = mats.map(name => db.materials(name, { queryLanguages:[lang], resultLanguage:lang })).filter(Boolean);
+      const byId = new Map(mats.map(mat => [String(mat.id), mat]));
+      for (const boss of items) {
+        const inferred = inferredBossAssetNames(boss.raw).flatMap(urlsForAssetFilename);
+        const rewardMats = domainRewardEntries(boss).map(reward => byId.get(String(reward.id))).filter(Boolean).filter(mat => Number(mat.rarity || 0) >= 5);
+        const rewardUrls = rewardMats.flatMap(mat => resolveImageUrls('materials', mat));
+        const existing = (boss.imageUrls || []).filter(url => !String(url).startsWith('data:image/svg+xml'));
+        const candidates = [...new Set([...existing, ...inferred, ...rewardUrls])];
+        if (candidates.length) { boss.imageUrls = candidates; boss.imageUrl = candidates[0]; }
+      }
+    } catch (error) {
+      console.warn('Could not improve weekly boss images', error);
+    }
+  }
+
+  function intersectsSet(a, b) {
+    for (const value of a) if (b.has(value)) return true;
+    return false;
+  }
+
+  async function hydrateDomainRelations(items, force = false) {
+    if (!items?.length) return;
+    try {
+      await Promise.all([ensureGenshinDbFolder('characters', force), ensureGenshinDbFolder('weapons', force), ensureGenshinDbFolder('talents', force)]);
+      const db = window.GenshinDb;
+      const preferred = state.lang === 'en' ? 'English' : 'Portuguese';
+      const opts = { matchCategories:true, verboseCategories:true, queryLanguages:[preferred], resultLanguage:preferred };
+      let chars = db.characters?.('names', opts) || [];
+      let weapons = db.weapons?.('names', opts) || [];
+      if (!Array.isArray(chars)) chars = chars ? [chars] : [];
+      if (!Array.isArray(weapons)) weapons = weapons ? [weapons] : [];
+
+      const domainInfo = items.map(domain => ({
+        domain,
+        rewardIds: domainRewardIds(domain),
+        weapon: String(domain.raw?.domainType || domain.raw?.domaintype || '').toUpperCase().includes('WEAPON_PROMOTE'),
+        characters: new Set(),
+        weapons: new Set(),
+      }));
+
+      for (const character of chars) {
+        let talent;
+        try { talent = db.talents?.(character.name, { queryLanguages:[preferred], resultLanguage:preferred }); } catch {}
+        const ids = collectMaterialIds(talent?.costs || {});
+        if (!ids.size) continue;
+        for (const info of domainInfo) if (!info.weapon && intersectsSet(ids, info.rewardIds)) info.characters.add(character.name);
+      }
+
+      for (const weapon of weapons) {
+        const ids = collectMaterialIds(weapon.costs || weapon.ascensionCosts || weapon.ascensioncosts || {});
+        if (!ids.size) continue;
+        for (const info of domainInfo) if (info.weapon && intersectsSet(ids, info.rewardIds)) info.weapons.add(weapon.name);
+      }
+
+      for (const info of domainInfo) {
+        info.domain.relatedCharacters = [...info.characters].sort((a,b)=>a.localeCompare(b));
+        info.domain.relatedWeapons = [...info.weapons].sort((a,b)=>a.localeCompare(b));
+        info.domain.searchAliases = `${info.domain.searchAliases || ''} ${[...info.domain.relatedCharacters, ...info.domain.relatedWeapons].join(' ')}`.trim();
+      }
+      const cachedWeapons = libraryCache.get('weapons');
+      if (Array.isArray(cachedWeapons) && cachedWeapons.length) {
+        for (const weapon of cachedWeapons) {
+          const match = domainInfo.find(info => info.weapon && info.domain.relatedWeapons?.some(name => String(name).toLowerCase() === String(weapon.name).toLowerCase()));
+          if (!match) continue;
+          weapon.relatedDomainName = match.domain.name;
+          weapon.daysOfWeek = [...(match.domain.daysOfWeek || [])];
+        }
+      }
+    } catch (error) {
+      console.warn('Could not build domain relations', error);
+    }
+  }
+
+  async function findRelatedDomain(entity, mode = '') {
+    if (!entity) return null;
+    await loadLibrary('domains');
+    const domains = libraryCache.get('domains') || [];
+    const name = String(entity.name || '').toLocaleLowerCase();
+    if (entity.entityType === 'characters' && mode === 'talent') {
+      return domains.find(domain => (domain.relatedCharacters || []).some(n => String(n).toLocaleLowerCase() === name)) || null;
+    }
+    if (entity.entityType === 'weapons') {
+      return domains.find(domain => (domain.relatedWeapons || []).some(n => String(n).toLocaleLowerCase() === name)) || null;
+    }
+    return null;
+  }
+
+  function getWeeklyTalentDropIds(db, dataLanguage) {
+    const opts = { matchCategories:true, verboseCategories:true, queryLanguages:[dataLanguage], resultLanguage:dataLanguage };
+    let talents = db.talents?.('names', opts) || [];
+    if (!Array.isArray(talents)) talents = talents ? [talents] : [];
+    if (talents.length && typeof talents[0] === 'string') talents = talents.map(name => db.talents(name, opts)).filter(Boolean);
+    const early = new Set();
+    const late = new Set();
+    for (const talent of talents) {
+      const costs = talent?.costs || {};
+      for (const lvl of ['lvl2','lvl3','lvl4','lvl5','lvl6']) for (const item of (costs[lvl] || [])) early.add(String(item.id));
+      for (const lvl of ['lvl7','lvl8','lvl9','lvl10']) for (const item of (costs[lvl] || [])) late.add(String(item.id));
+    }
+    return new Set([...late].filter(id => !early.has(id)));
+  }
+
+  function isWeeklyBoss(item, weeklyDropIds) {
+    const type = String(item.enemyType || item.type || item.monsterType || '').toUpperCase();
+    if (!type.includes('BOSS') && String(item.categoryType || '').toUpperCase() !== 'CODEX_SUBTYPE_BOSS') return false;
+    return (item.rewardPreview || item.rewardpreview || []).some(reward => weeklyDropIds.has(String(reward.id)));
+  }
+
+  function normalizeDbEntity(type, raw, meta) {
+    const name = domainDisplayName(type, raw.name || raw.fullname || raw.id || 'Unknown');
+    const imageUrls = resolveImageUrls(type, raw);
+    const id = String(raw.id ?? slugify(name));
+    const days = normalizeAvailableDays(raw.daysOfWeek || raw.daysofweek || []);
+
+    let subtitle = librarySingular(meta);
+    if (type === 'characters') {
+      subtitle = [raw.elementText || raw.element, raw.weaponText || raw.weapontype, raw.rarity ? `${raw.rarity}★` : '', raw.region].filter(Boolean).join(' · ');
+    } else if (type === 'weapons') {
+      subtitle = [raw.weaponText || raw.weapontype, raw.rarity ? `${raw.rarity}★` : '', raw.weaponMaterialType || raw.weaponmaterialtype].filter(Boolean).join(' · ');
+    } else if (type === 'artifacts') {
+      const rarity = raw.rarityList || raw.rarity;
+      subtitle = `${Array.isArray(rarity) ? rarity.join('/') : rarity || (state.lang === 'en' ? 'Artifact' : 'Artefato')}★ · ${state.lang === 'en' ? 'set' : 'conjunto'}`;
+    } else if (type === 'domains') {
+      const kind = String(raw.domainType || raw.domaintype || '').includes('WEAPON_PROMOTE') ? (state.lang === 'en' ? 'Weapon materials' : 'Materiais de arma') : (state.lang === 'en' ? 'Talent materials' : 'Materiais de talento');
+      subtitle = [kind, raw.entranceName || raw.domainentrance, raw.regionName || raw.region, days.length ? days.map(dayShort).join('/') : (state.lang === 'en' ? 'Every day' : 'Todos os dias')].filter(Boolean).join(' · ');
+    } else if (type === 'materials') {
+      subtitle = [raw.typeText || raw.materialtype, raw.rarity ? `${raw.rarity}★` : '', days.length ? days.map(dayShort).join('/') : ''].filter(Boolean).join(' · ');
+    } else if (type === 'boss') {
+      subtitle = [state.lang === 'en' ? 'Weekly Boss' : 'Chefe semanal', raw.categoryText || raw.category].filter(Boolean).join(' · ');
+    }
+
+    const safeImageUrls = imageUrls.length ? imageUrls : [makeFallbackIcon(name, type)];
+    return {
+      id,
+      name,
+      entityType: type,
+      typeLabel: librarySingular(meta),
+      subtitle: subtitle || librarySingular(meta),
+      imageUrl: safeImageUrls[0],
+      imageUrls: safeImageUrls,
+      daysOfWeek: days,
+      domainKind: type === 'domains' ? (String(raw.domainType || raw.domaintype || '').toUpperCase().includes('WEAPON_PROMOTE') ? 'weapon' : 'talent') : '',
+      raw,
+    };
+  }
+
+  function domainDisplayName(type, name) {
+    if (type !== 'domains') return String(name);
+    return String(name)
+      .replace(/^Domain of (?:Mastery|Forgery|Blessing):\s*/i, '')
+      .replace(/\s+(?:I|II|III|IV|V|VI)$/i, '')
+      .trim();
+  }
+
+  function cleanAssetName(value) {
+    return String(value || '').split('/').pop().replace(/\.(png|webp|jpg|jpeg)$/i, '');
+  }
+
+  function urlsForAssetFilename(filename) {
+    if (!filename) return [];
+    const clean = cleanAssetName(filename);
+    return ASSET_CDNS.map(buildUrl => buildUrl(clean));
+  }
+
+  function resolveImageUrls(type, raw) {
+    const images = raw?.images || {};
+    const values = [];
+    const filenames = [];
+    const addUrl = value => {
+      if (!value || typeof value !== 'string') return;
+      let url = value.trim();
+      if (url.startsWith('http://')) url = 'https://' + url.slice(7);
+      if (/^https:\/\//i.test(url) && !values.includes(url)) values.push(url);
+    };
+    const addFilename = value => {
+      if (!value || typeof value !== 'string') return;
+      const filename = cleanAssetName(value);
+      if (/^UI_/i.test(filename) && !filenames.includes(filename)) filenames.push(filename);
+    };
+    const scan = value => {
+      if (!value) return;
+      if (typeof value === 'string') { /^https?:\/\//i.test(value) ? addUrl(value) : addFilename(value); return; }
+      if (Array.isArray(value)) { value.forEach(scan); return; }
+      if (typeof value === 'object') Object.values(value).forEach(scan);
+    };
+
+    // Prefer the compact in-game icon for every library type. In particular, characters
+    // must use UI_AvatarIcon / filename_icon before splash or full portrait artwork.
+    const preferred = type === 'characters'
+      ? [images.filename_icon, images.mihoyo_icon, images['hoyolab-avatar'], images.hoyowiki_icon, images.filename_sideIcon, images.mihoyo_sideIcon]
+      : type === 'weapons'
+        ? [images.filename_icon, images.mihoyo_icon, images.filename_awakenIcon]
+        : type === 'artifacts'
+          ? [images.mihoyo_flower, images.filename_flower, images.mihoyo_circlet, images.filename_circlet]
+          : type === 'domains'
+            ? [images.filename_image]
+            : type === 'boss'
+              ? [images.filename_icon, images.filename_investigationIcon, images.filename_sideIcon, images.filename_monsterIcon, images.filename_image, images.mihoyo_icon, images.hoyowiki_icon]
+              : type === 'materials'
+                ? [images.filename_icon]
+                : [];
+    preferred.forEach(scan);
+    scan(images);
+    scan(raw?.icon);
+    scan(raw?.image);
+    scan(raw?.portrait);
+    if (type === 'boss') scan(raw);
+
+    for (const filename of filenames) {
+      for (const buildUrl of ASSET_CDNS) {
+        const url = buildUrl(filename);
+        if (!values.includes(url)) values.push(url);
+      }
+    }
+    return values;
+  }
+
+  function renderLibraryGrid(type) {
+    const query = el.librarySearch.value.trim().toLowerCase();
+    let source = libraryCache.get(type) || [];
+    if (type === 'domains' && activeDomainKind !== 'all') source = source.filter(item => item.domainKind === activeDomainKind);
+    const filtered = query ? source.filter(item => `${item.name} ${item.subtitle || ''} ${item.id} ${item.searchAliases || ''}`.toLowerCase().includes(query)) : source;
+    const display = filtered.slice(0, 240);
+
+    el.libraryCount.textContent = `${filtered.length} ${filtered.length === 1 ? tr('item') : tr('items')}${filtered.length > display.length ? ` · ${state.lang === 'en' ? 'showing' : 'mostrando'} ${display.length}` : ''}`;
+    el.libraryHint.textContent = type === 'misc' ? tr('miscHint') : tr('clickPlan');
+    el.libraryGrid.innerHTML = '';
+
+    display.forEach(item => {
+      const relations = [...(item.relatedCharacters || []), ...(item.relatedWeapons || [])];
+      const matchedRelations = query ? relations.filter(name => String(name).toLowerCase().includes(query)) : [];
+      const relationPreview = (matchedRelations.length ? matchedRelations : relations).slice(0,3);
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = `entity-card ${type === 'misc' ? 'misc-card' : ''}`;
+      card.dataset.id = item.id;
+      card.dataset.entityType = type;
+      card.innerHTML = `
+        <span class="entity-thumb"><span class="thumb-fallback">✦</span><img alt="" loading="eager" decoding="async"></span>
+        <strong title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</strong>
+        <small title="${escapeHtml(item.subtitle || item.typeLabel)}">${escapeHtml(item.subtitle || item.typeLabel)}</small>
+        ${type === 'domains' && item.primaryDropName ? `<span class="domain-drop-line"><span class="domain-drop-icon"><span class="thumb-fallback">✦</span><img alt=""></span><span class="domain-drop-name" title="${escapeHtml(item.primaryDropName)}">${escapeHtml(item.primaryDropName)}</span></span>` : ''}
+        ${type === 'domains' && query && item.searchAliases ? `<span class="domain-relation-hint">${escapeHtml(tr('usedBy'))}: ${escapeHtml(relationPreview.join(', '))}${relations.length>relationPreview.length?'…':''}</span>` : ''}
+        ${type === 'weapons' && (item.relatedDomainName || item.daysOfWeek?.length) ? `<span class="weapon-farm-info">${(item.daysOfWeek||[]).map(day => `<span class="farm-day-badge">${escapeHtml(dayShort(day))}</span>`).join('')}${item.relatedDomainName ? `<span class="weapon-domain-name">${escapeHtml(item.relatedDomainName)}</span>` : ''}</span>` : ''}
+        ${type === 'artifacts' && isStrongboxEligible(item) ? `<span class="method-badge">${escapeHtml(state.lang === 'en' ? 'Strongbox' : 'Strongbox')}</span>` : ''}`;
+      const img = card.querySelector('img');
+      const fallback = card.querySelector('.thumb-fallback');
+      fallback.textContent = item.fallbackGlyph || '✦';
+      setSafeImage(img, fallback, item.imageUrls || item.imageUrl, item.name);
+      const dropImg = card.querySelector('.domain-drop-icon img');
+      if (dropImg) {
+        const dropFallback = card.querySelector('.domain-drop-icon .thumb-fallback');
+        setSafeImage(dropImg, dropFallback, item.dropItems?.[0]?.imageUrls || item.imageUrls || item.imageUrl, item.primaryDropName || item.name);
+      }
+      el.libraryGrid.appendChild(card);
+    });
+
+    if (!display.length) {
+      el.libraryGrid.innerHTML = `<div style="grid-column:1/-1;padding:65px 20px;text-align:center;color:var(--muted);font-size:12px;">${tr('noItems')}</div>`;
+    }
+  }
+
+  function refreshSavedTaskImages(type, items) {
+    const byId = new Map(items.map(item => [String(item.id), item]));
+    let changed = false;
+    for (const day of DAYS) {
+      for (const task of state.tasks[day]) {
+        if (task.entityType !== type || !task.entityId) continue;
+        const current = byId.get(String(task.entityId));
+        if (!current?.imageUrls?.length) continue;
+        if (JSON.stringify(task.imageUrls || []) !== JSON.stringify(current.imageUrls)) {
+          task.imageUrls = [...current.imageUrls];
+          task.imageUrl = current.imageUrl || current.imageUrls[0];
+          changed = true;
+        }
+      }
+    }
+    if (changed) { saveState(); renderTasks(); }
+  }
+
+
+  function fallbackEntries(type) {
+    const pt = {
+      characters:['Viajante','Amber','Kaeya','Lisa','Barbara','Xiangling'], weapons:['Espada','Arco','Catalisador','Lança','Espadão'],
+      artifacts:['Emblem of Severed Fate','Golden Troupe','Marechaussee Hunter','Deepwood Memories'], boss:['Chefe semanal'], domains:['Domínio de Talentos','Domínio de Armas'],
+    };
+    const en = {
+      characters:['Traveler','Amber','Kaeya','Lisa','Barbara','Xiangling'], weapons:['Sword','Bow','Catalyst','Polearm','Claymore'],
+      artifacts:['Emblem of Severed Fate','Golden Troupe','Marechaussee Hunter','Deepwood Memories'], boss:['Weekly Boss'], domains:['Talent Domain','Weapon Domain'],
+    };
+    if (type === 'misc') return miscEntries();
+    const data = state.lang === 'en' ? en : pt;
+    const meta = LIBRARY_TYPES.find(item => item.id === type);
+    return (data[type] || []).map(name => ({ id:slugify(name), name, entityType:type, typeLabel:librarySingular(meta), subtitle:librarySingular(meta), imageUrl:makeFallbackIcon(name, type), imageUrls:[makeFallbackIcon(name, type)], raw:type === 'artifacts' ? { rarityList:[5], effect2Pc:'fallback', effect4Pc:'fallback', version:'4.0' } : null }));
+  }
+
+  function miscEntries() {
+    const meta = LIBRARY_TYPES.find(x=>x.id==='misc');
+    return [
+      { id:'artifact-route', name:tr('artifactRoute'), entityType:'misc', typeLabel:librarySingular(meta), subtitle:tr('artifactRouteSub'), category:'route', resin:0, taskName:tr('routeArtifactTask'), action:'task', miscType:'artifact-route', imageUrls:[...urlsForAssetFilename('UI_RelicIcon_15001_1'), makeMiscSvg('artifact')] },
+      { id:'mora-route', name:tr('moraRoute'), entityType:'misc', typeLabel:librarySingular(meta), subtitle:tr('moraRouteSub'), category:'route', resin:0, taskName:tr('routeMoraTask'), action:'task', miscType:'mora-route', imageUrls:[...urlsForAssetFilename('UI_ItemIcon_202'), makeMiscSvg('mora')] },
+      { id:'ore-route', name:tr('oreRoute'), entityType:'misc', typeLabel:librarySingular(meta), subtitle:tr('oreRouteSub'), category:'route', resin:0, taskName:tr('routeOreTask'), action:'task', miscType:'ore-route', imageUrls:[...urlsForAssetFilename('UI_ItemIcon_101003'), makeMiscSvg('ore')] },
+      { id:'strongbox', name:tr('strongbox'), entityType:'misc', typeLabel:librarySingular(meta), subtitle:tr('strongboxSub'), category:'strongbox', resin:0, action:'strongbox', miscType:'strongbox', imageUrls:[makeMiscSvg('strongbox')] },
+      { id:'custom-task', name:tr('customMisc'), entityType:'misc', typeLabel:librarySingular(meta), subtitle:tr('customMiscSub'), category:'custom', resin:0, action:'custom', miscType:'custom', imageUrls:[makeMiscSvg('custom')] },
+    ];
+  }
+
+  function openTaskDialog(entity, options = {}) {
+    dialogEntity = entity;
+    dialogOptions = options || {};
+    dialogAllowedDays = [];
+    dialogAvailabilityContext = '';
+    dialogAvailabilityPromise = Promise.resolve();
+    const isCustom = !entity;
+    const typeMeta = entity ? LIBRARY_TYPES.find(type => type.id === entity.entityType) : null;
+    const category = entity?.category || suggestedCategory(entity?.entityType);
+    const resin = Number.isFinite(entity?.resin) ? entity.resin : suggestedResin(category);
+
+    // Library items already know their name/category. Keep those technical fields only
+    // for custom tasks so the dialog stays contextual instead of repeating metadata.
+    el.taskNameField.hidden = !isCustom;
+    el.taskCategoryField.hidden = !isCustom;
+
+    el.dialogType.textContent = isCustom ? tr('customType') : (librarySingular(typeMeta) || entity.typeLabel || (state.lang === 'en' ? 'GAME DATA' : 'DADOS DO JOGO')).toUpperCase();
+    el.dialogTitle.textContent = isCustom ? tr('customTitle') : entity.name;
+    el.dialogSubtitle.textContent = isCustom ? tr('customSubtitle') : (state.lang === 'en' ? `Add ${entity.name} to your weekly route.` : `Adicionar ${entity.name} à sua rota semanal.`);
+    el.taskNameInput.value = isCustom ? '' : (entity.taskName || defaultTaskName(entity));
+    [...el.taskDayInput.options].forEach(option => option.textContent = dayLabel(option.value));
+    el.taskDayInput.value = activeDay;
+    el.taskCategoryInput.value = category;
+    el.resinPerRunInput.value = resin;
+    el.runsInput.value = 1;
+    el.noteInput.value = '';
+    el.entityTypeInput.value = entity?.entityType || 'custom';
+    el.entityIdInput.value = entity?.id || '';
+    el.entityImageInput.value = entity?.imageUrl || '';
+
+    const isArtifact = entity?.entityType === 'artifacts';
+    const isCharacter = entity?.entityType === 'characters';
+    el.artifactMethodField.hidden = !isArtifact;
+    el.characterFarmField.hidden = !isCharacter;
+    el.characterMaterialPreview.innerHTML = '';
+    document.querySelector('#dialogImageWrap').classList.toggle('character-portrait', isCharacter);
+    if (isCharacter) {
+      el.characterFarmInput.value = options.characterFarm || 'talent';
+      applyCharacterFarmMode();
+    }
+    if (isArtifact) {
+      const eligible = isStrongboxEligible(entity);
+      el.artifactMethodInput.innerHTML = `<option value="domain">${escapeHtml(tr('farmDomain'))}</option>${eligible ? `<option value="strongbox">${escapeHtml(tr('strongboxMethod'))}</option>` : ''}`;
+      el.artifactMethodInput.value = options.artifactMethod === 'strongbox' && eligible ? 'strongbox' : 'domain';
+      el.artifactMethodNote.textContent = eligible ? tr('strongboxAvailable') : tr('strongboxUnavailable');
+    }
+
+    updateDialogTotal();
+    el.taskDialog.showModal();
+    // Start image loading only after the dialog is visible. Some preview environments
+    // deprioritize images inside a closed <dialog> and never paint the portrait.
+    requestAnimationFrame(() => setSafeImage(el.dialogImage, el.dialogFallback, entity?.imageUrls || entity?.imageUrl || '', entity?.name || tr('customTitle')));
+    if (entity?.entityType === 'characters') populateCharacterMaterialPreview(entity);
+    if (entity) applyFarmAvailability(entity);
+    if (entity?.entityType === 'characters') dialogAvailabilityPromise = applyRelatedDomainAvailability(entity, el.characterFarmInput.value);
+    if (entity?.entityType === 'weapons') {
+      if (entity.relatedDomainName && entity.daysOfWeek?.length) {
+        setDialogAvailability(entity.daysOfWeek, entity.relatedDomainName);
+        el.dialogSubtitle.textContent = `${tr('weaponDomain')}: ${entity.relatedDomainName} · ${tr('available')}: ${entity.daysOfWeek.map(dayShort).join(' / ')}`;
+      }
+      dialogAvailabilityPromise = applyRelatedDomainAvailability(entity, 'weapon');
+    }
+    if (isArtifact) requestAnimationFrame(applyArtifactMethod);
+    setTimeout(() => el.taskNameInput.focus(), 30);
+  }
+
+  function resetDayOptionLabels() {
+    [...el.taskDayInput.options].forEach(option => option.textContent = dayLabel(option.value));
+  }
+
+  function setDialogAvailability(days, context = '') {
+    dialogAllowedDays = normalizeAvailableDays(days || []);
+    dialogAvailabilityContext = context || '';
+    resetDayOptionLabels();
+    if (!dialogAllowedDays.length) return;
+    [...el.taskDayInput.options].forEach(option => {
+      const allowed = dialogAllowedDays.includes(option.value);
+      option.textContent = allowed
+        ? `★ ${dayLabel(option.value)} — ${String(tr('available')).toLowerCase()}`
+        : `⚠ ${dayLabel(option.value)} — ${state.lang === 'en' ? 'unavailable' : 'indisponível'}`;
+    });
+  }
+
+  function showAvailabilityError(day) {
+    const shortDays = dialogAllowedDays.map(dayShort).join(' / ');
+    toast(`${tr('unavailableDay')} ${tr('availableOn')}: ${shortDays}${dialogAvailabilityContext ? ` · ${dialogAvailabilityContext}` : ''}`);
+  }
+
+  async function applyFarmAvailability(entity) {
+    const days = normalizeAvailableDays(entity.daysOfWeek || entity.raw?.daysOfWeek || entity.raw?.daysofweek || []);
+    const raw = entity.raw || {};
+    const extra = [];
+
+    if (entity.entityType === 'domains') {
+      if (raw.entranceName || raw.domainentrance) extra.push(raw.entranceName || raw.domainentrance);
+      if (raw.regionName || raw.region) extra.push(raw.regionName || raw.region);
+    }
+
+    if (days.length) {
+      const shortDays = days.map(dayShort).join(' / ');
+      setDialogAvailability(days, entity.name);
+      el.dialogSubtitle.textContent = [...extra, `${tr('available')}: ${shortDays}`].filter(Boolean).join(' · ');
+      el.noteInput.placeholder = `${entity.name} · ${shortDays}`;
+      return;
+    }
+
+    if (extra.length) el.dialogSubtitle.textContent = extra.join(' · ');
+  }
+
+  async function applyRelatedDomainAvailability(entity, mode = '') {
+    if (!entity) return;
+    if (entity.entityType === 'characters' && mode !== 'talent') {
+      dialogAllowedDays = [];
+      dialogAvailabilityContext = '';
+      resetDayOptionLabels();
+      return;
+    }
+    if (entity.entityType !== 'characters' && entity.entityType !== 'weapons') return;
+
+    try {
+      const domain = await findRelatedDomain(entity, mode);
+      if (!domain) {
+        dialogAllowedDays = [];
+        dialogAvailabilityContext = '';
+        resetDayOptionLabels();
+        return;
+      }
+      const days = normalizeAvailableDays(domain.daysOfWeek || []);
+      setDialogAvailability(days, domain.name);
+      const kind = entity.entityType === 'weapons' ? tr('weaponDomain') : tr('talentDomain');
+      const shortDays = days.map(dayShort).join(' / ');
+      el.dialogSubtitle.textContent = `${kind}: ${domain.name}${shortDays ? ` · ${tr('available')}: ${shortDays}` : ''}`;
+      el.noteInput.placeholder = `${domain.name}${shortDays ? ` · ${shortDays}` : ''}`;
+    } catch (error) {
+      console.warn('Could not resolve related domain', error);
+    }
+  }
+
+
+  function applyCharacterFarmMode() {
+    if (!dialogEntity || dialogEntity.entityType !== 'characters') return;
+    const mode = el.characterFarmInput.value;
+    const name = dialogEntity.name;
+    const configs = {
+      boss: { category:'boss', resin:40, pt:`Chefe de ascensão — ${name}`, en:`Ascension boss — ${name}` },
+      ascension: { category:'character', resin:0, pt:`Materiais para upar — ${name}`, en:`Level-up materials — ${name}` },
+      talent: { category:'talent', resin:20, pt:`Talentos — ${name}`, en:`Talents — ${name}` },
+      weekly: { category:'weekly', resin:30, pt:`Chefe semanal — ${name}`, en:`Weekly boss — ${name}` },
+    };
+    const config = configs[mode] || configs.talent;
+    el.taskCategoryInput.value = config.category;
+    el.resinPerRunInput.value = config.resin;
+    el.taskNameInput.value = state.lang === 'en' ? config.en : config.pt;
+    updateDialogTotal();
+  }
+
+  async function populateCharacterMaterialPreview(entity) {
+    if (!entity || entity !== dialogEntity || entity.entityType !== 'characters') return;
+    const mode = el.characterFarmInput.value;
+    el.characterMaterialPreview.innerHTML = `<span class="material-preview-loading">${escapeHtml(tr('loading'))}</span>`;
+    try {
+      await ensureGenshinDbFolder('materials');
+      if (mode === 'talent' || mode === 'weekly') await ensureGenshinDbFolder('talents');
+      const db = window.GenshinDb;
+      const dataLanguage = folderLanguages.get(`${state.lang}:materials`) || (state.lang === 'en' ? 'English' : 'Portuguese');
+      const opts = { queryLanguages:[dataLanguage], resultLanguage:dataLanguage };
+      let items = [];
+      if (mode === 'ascension' || mode === 'boss') {
+        items = Object.values(entity.raw?.costs || {}).flat();
+      } else if (mode === 'talent' || mode === 'weekly') {
+        const talentLanguage = folderLanguages.get(`${state.lang}:talents`) || dataLanguage;
+        const talentOpts = { queryLanguages:[talentLanguage], resultLanguage:talentLanguage };
+        const talent = db.talents?.(entity.name, talentOpts);
+        const levels = mode === 'weekly' ? ['lvl7','lvl8','lvl9','lvl10'] : ['lvl2','lvl3','lvl4','lvl5','lvl6','lvl7','lvl8','lvl9','lvl10'];
+        items = levels.flatMap(level => talent?.costs?.[level] || []);
+      } else {
+        items = [];
+      }
+      const unique = [];
+      const seen = new Set();
+      for (const item of items) {
+        const key = String(item.id || item.name || '');
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        let material = item.name ? db.materials?.(item.name, opts) : null;
+        if (!material && item.id) {
+          const all = db.materials?.('names', { matchCategories:true, verboseCategories:true, queryLanguages:[dataLanguage], resultLanguage:dataLanguage }) || [];
+          material = Array.isArray(all) ? all.find(mat => String(mat.id) === String(item.id)) : null;
+        }
+        const materialName = String(material?.name || item.name || '').toLowerCase();
+        const rarity = Number(material?.rarity || 0);
+        if (mode === 'weekly') {
+          if (rarity < 5 || /mora|crown|coroa|insight|perspic/.test(materialName)) continue;
+        }
+        if (mode === 'boss') {
+          const count = Number(item.count || item.amount || 0);
+          if (/mora|exp|sliver|fragment|chunk|gemstone|lasca|fragmento|pedaço|gema/.test(materialName)) continue;
+          if (count > 24 || (rarity && rarity < 4)) continue;
+        }
+        unique.push({ name:material?.name || item.name || String(item.id || ''), imageUrls:material ? resolveImageUrls('materials', material) : [] });
+      }
+      if (!unique.length) {
+        el.characterMaterialPreview.innerHTML = `<span class="material-preview-loading">${escapeHtml(state.lang === 'en' ? 'Character-specific task' : 'Tarefa específica do personagem')}</span>`;
+        return;
+      }
+      el.characterMaterialPreview.innerHTML = '';
+      for (const mat of unique.slice(0,8)) {
+        const chip = document.createElement('span');
+        chip.className='material-chip';
+        chip.innerHTML=`<span class="material-chip-image"><span class="thumb-fallback">✦</span><img alt=""></span><span>${escapeHtml(mat.name)}</span>`;
+        setSafeImage(chip.querySelector('img'), chip.querySelector('.thumb-fallback'), mat.imageUrls.length ? mat.imageUrls : [makeFallbackIcon(mat.name,'materials')], mat.name);
+        el.characterMaterialPreview.appendChild(chip);
+      }
+    } catch (error) {
+      console.warn('Could not load character material preview', error);
+      el.characterMaterialPreview.innerHTML = `<span class="material-preview-loading">${escapeHtml(state.lang === 'en' ? 'Materials will still be tracked with the character.' : 'Os materiais ainda serão registrados junto do personagem.')}</span>`;
+    }
+  }
+
+  function applyArtifactMethod() {
+    if (!dialogEntity || dialogEntity.entityType !== 'artifacts') return;
+    const method = el.artifactMethodInput.value;
+    if (method === 'strongbox' && isStrongboxEligible(dialogEntity)) {
+      el.taskCategoryInput.value = 'strongbox';
+      el.resinPerRunInput.value = 0;
+      el.taskNameInput.value = state.lang === 'en' ? `Strongbox — ${dialogEntity.name}` : `Strongbox — ${dialogEntity.name}`;
+      el.dialogSubtitle.textContent = tr('strongboxMethodSubtitle');
+      el.noteInput.placeholder = state.lang === 'en' ? 'e.g. do 10 conversions' : 'ex.: fazer 10 conversões';
+    } else {
+      el.taskCategoryInput.value = 'artifact';
+      el.resinPerRunInput.value = 20;
+      el.taskNameInput.value = defaultTaskName(dialogEntity);
+      el.dialogSubtitle.textContent = tr('domainMethodSubtitle');
+      el.noteInput.placeholder = state.lang === 'en' ? 'e.g. farm until a usable 4-piece set' : 'ex.: farmar até fechar um 4 peças utilizável';
+    }
+    updateDialogTotal();
+  }
+
+  function isStrongboxEligible(entity) {
+    if (!entity || entity.entityType !== 'artifacts') return false;
+    const raw = entity.raw || {};
+    const rarities = Array.isArray(raw.rarityList) ? raw.rarityList.map(Number) : [Number(raw.rarity || 0)];
+    if (!rarities.includes(5)) return false;
+    const hasSetBonus = Boolean(raw.effect2Pc || raw.effect2pc || raw.effect4Pc || raw.effect4pc);
+    if (!hasSetBonus) return false;
+    const match = String(raw.version || '').match(/\d+(?:\.\d+)?/);
+    if (!match) return false;
+    return Number(match[0]) <= CURRENT_STRONGBOX_MAX_VERSION;
+  }
+
+  async function openStrongboxDialog() {
+    el.strongboxSearch.value = '';
+    el.strongboxGrid.innerHTML = `<div class="strongbox-empty">${escapeHtml(tr('loading'))}</div>`;
+    el.strongboxDialog.showModal();
+    await loadLibrary('artifacts');
+    renderStrongboxGrid();
+  }
+
+  function renderStrongboxGrid() {
+    const query = el.strongboxSearch.value.trim().toLowerCase();
+    const artifacts = (libraryCache.get('artifacts') || []).filter(isStrongboxEligible);
+    const filtered = query ? artifacts.filter(item => `${item.name} ${item.subtitle || ''}`.toLowerCase().includes(query)) : artifacts;
+    el.strongboxGrid.innerHTML = '';
+    for (const item of filtered) {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'entity-card';
+      card.dataset.id = item.id;
+      card.innerHTML = `<span class="entity-thumb"><span class="thumb-fallback">✦</span><img alt="" loading="eager" decoding="async"></span><strong title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</strong><small>${escapeHtml(tr('strongboxMethod'))}</small>`;
+      const img = card.querySelector('img');
+      const fallback = card.querySelector('.thumb-fallback');
+      setSafeImage(img, fallback, item.imageUrls || item.imageUrl, item.name);
+      el.strongboxGrid.appendChild(card);
+    }
+    if (!filtered.length) el.strongboxGrid.innerHTML = `<div class="strongbox-empty">${escapeHtml(tr('noStrongbox'))}</div>`;
+  }
+  async function addTaskFromDialog() {
+    await dialogAvailabilityPromise;
+    const day = el.taskDayInput.value;
+    if (dialogAllowedDays.length && !dialogAllowedDays.includes(day)) { showAvailabilityError(day); return; }
+    const task = {
+      id: uid(),
+      name: el.taskNameInput.value.trim(),
+      day,
+      category: el.taskCategoryInput.value,
+      resinPerRun: clamp(Number(el.resinPerRunInput.value) || 0, 0, 2000),
+      runs: clamp(Number(el.runsInput.value) || 1, 1, 99),
+      doneRuns: 0,
+      note: el.noteInput.value.trim(),
+      entityType: el.entityTypeInput.value || 'custom',
+      entityId: el.entityIdInput.value || '',
+      acquisitionMethod: dialogEntity?.entityType === 'artifacts' ? el.artifactMethodInput.value : (dialogEntity?.entityType === 'characters' ? el.characterFarmInput.value : (dialogEntity?.miscType || '')),
+      imageUrl: el.entityImageInput.value || '',
+      imageUrls: dialogEntity?.imageUrls || (el.entityImageInput.value ? [el.entityImageInput.value] : []),
+    };
+    if (!task.name) return;
+    state.tasks[day].push(task);
+    activeDay = day;
+    saveState();
+    el.taskDialog.close();
+    renderAll();
+    toast(state.lang === 'en' ? `Added to ${dayLabel(day)}` : `Adicionado a ${dayLabel(day)}`);
+  }
+
+  function updateDialogTotal() {
+    const resin = Number(el.resinPerRunInput.value) || 0;
+    const runs = Number(el.runsInput.value) || 0;
+    el.dialogTotal.textContent = formatNumber(resin * runs);
+  }
+
+  function suggestedCategory(type) {
+    switch (type) {
+      case 'characters': return 'character';
+      case 'weapons': return 'weapon';
+      case 'artifacts': return 'artifact';
+      case 'boss': return 'weekly';
+      case 'domains': return 'domain';
+      case 'misc': return 'route';
+      default: return 'custom';
+    }
+  }
+
+  function suggestedResin(category) {
+    if (category === 'boss') return 40;
+    if (category === 'weekly') return 30;
+    if (category === 'route' || category === 'strongbox') return 0;
+    return 20;
+  }
+
+  function defaultTaskName(entity) {
+    switch (entity.entityType) {
+      case 'characters': return state.lang === 'en' ? `Farm for ${entity.name}` : `Farmar para ${entity.name}`;
+      case 'weapons': return state.lang === 'en' ? `Farm ${entity.name}` : `Farmar ${entity.name}`;
+      case 'artifacts': return state.lang === 'en' ? `${entity.name} domain` : `Domínio de ${entity.name}`;
+      case 'boss': return entity.name;
+      case 'domains': return entity.name;
+      case 'misc': return entity.taskName || entity.name;
+      default: return entity.name;
+    }
+  }
+
+  function clearWeek() {
+    const count = DAYS.reduce((sum, day) => sum + state.tasks[day].length, 0);
+    if (!count) return toast(state.lang === 'en' ? 'The week is already empty' : 'A semana já está vazia');
+    if (!confirm(state.lang === 'en' ? `Clear all ${count} planned tasks for the week?` : `Limpar todas as ${count} tarefas planejadas da semana?`)) return;
+    DAYS.forEach(day => state.tasks[day] = []);
+    saveState();
+    renderAll();
+    toast(state.lang === 'en' ? 'Week cleared' : 'Semana limpa');
+  }
+
+  function buildBackupPayload() {
+    return {
+      app: 'Resin Route',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      state,
+    };
+  }
+
+  async function exportPlanner() {
+    const filename = `resin-route-backup-${new Date().toISOString().slice(0,10)}.json`;
+    const json = JSON.stringify(buildBackupPayload(), null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+
+    // Chrome/Edge can show the native Save As picker when the page is opened normally.
+    // Embedded previews may forbid it, so the Blob download below remains the fallback.
+    if (window.isSecureContext && typeof window.showSaveFilePicker === 'function') {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        el.backupDialog.close();
+        toast(state.lang === 'en' ? 'Backup saved' : 'Backup salvo');
+        return;
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        // SecurityError is common inside embedded previews; continue to Blob fallback.
+      }
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    el.backupDialog.close();
+    toast(state.lang === 'en' ? 'Backup download started' : 'Download do backup iniciado');
+  }
+
+  async function copyPlannerBackup() {
+    const json = JSON.stringify(buildBackupPayload(), null, 2);
+    try {
+      await navigator.clipboard.writeText(json);
+      el.backupDialog.close();
+      toast(state.lang === 'en' ? 'Backup copied to clipboard' : 'Backup copiado para a área de transferência');
+    } catch (error) {
+      // Clipboard can also be restricted by embedded previews. Use a textarea fallback.
+      const area = document.createElement('textarea');
+      area.value = json;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand('copy');
+      area.remove();
+      if (!ok) return toast(state.lang === 'en' ? 'Could not copy the backup' : 'Não foi possível copiar o backup');
+      el.backupDialog.close();
+      toast(state.lang === 'en' ? 'Backup copied to clipboard' : 'Backup copiado para a área de transferência');
+    }
+  }
+
+  function exportPlannerImage() {
+    const width = 1500;
+    const margin = 64;
+    const gap = 26;
+    const colWidth = (width - margin * 2 - gap) / 2;
+    const rows = [['Monday','Tuesday'], ['Wednesday','Thursday'], ['Friday','Saturday'], ['Sunday']];
+    const rowHeights = rows.map(pair => 112 + Math.max(...pair.map(day => state.tasks[day].length), 1) * 54);
+    const height = 210 + rowHeights.reduce((a,b)=>a+b,0) + gap * (rows.length - 1) + 80;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    const bg = ctx.createLinearGradient(0,0,width,height);
+    bg.addColorStop(0,'#163650'); bg.addColorStop(.55,'#224b69'); bg.addColorStop(1,'#10283f');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,width,height);
+    ctx.fillStyle='rgba(255,255,255,.05)'; ctx.beginPath(); ctx.arc(width-160,90,250,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f2dfaa'; ctx.font='700 24px Georgia, serif'; ctx.fillText('✦ RESIN ROUTE',margin,64);
+    ctx.fillStyle='#ffffff'; ctx.font='700 48px Georgia, serif'; ctx.fillText(state.lang==='en'?'Weekly Genshin Plan':'Plano Semanal de Genshin',margin,122);
+    ctx.fillStyle='#c5d8e4'; ctx.font='22px system-ui, sans-serif';
+    const total=DAYS.reduce((sum,d)=>sum+totalForDay(d),0);
+    ctx.fillText(`${total} ${state.lang==='en'?'Resin planned':'resina planejada'} · ${new Date().toLocaleDateString(state.lang==='en'?'en-US':'pt-BR')}`,margin,162);
+
+    let y=200;
+    rows.forEach((pair,rowIndex)=>{
+      const h=rowHeights[rowIndex];
+      pair.forEach((day,col)=>{
+        const x=margin + col*(colWidth+gap);
+        roundRect(ctx,x,y,colWidth,h,22);
+        ctx.fillStyle='rgba(249,247,238,.96)'; ctx.fill();
+        ctx.strokeStyle='rgba(224,196,126,.55)'; ctx.lineWidth=2; ctx.stroke();
+        ctx.fillStyle='#435268'; ctx.font='700 27px Georgia, serif'; ctx.fillText(dayLabel(day),x+28,y+43);
+        ctx.fillStyle='#9a7a3e'; ctx.font='700 18px system-ui, sans-serif'; ctx.textAlign='right'; ctx.fillText(`${totalForDay(day)} / ${state.resinCap}`,x+colWidth-28,y+42); ctx.textAlign='left';
+        const tasks=state.tasks[day];
+        if (!tasks.length) {
+          ctx.fillStyle='#8a98a6'; ctx.font='18px system-ui, sans-serif'; ctx.fillText(state.lang==='en'?'Nothing planned':'Nada planejado',x+28,y+88);
+        } else {
+          tasks.forEach((task,i)=>{
+            const ty=y+84+i*54;
+            const done=(task.doneRuns||0)>=task.runs;
+            ctx.fillStyle=done?'#5f9d79':'#d0ae62'; ctx.beginPath(); ctx.arc(x+35,ty-5,7,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='#435268'; ctx.font='700 18px system-ui, sans-serif'; ctx.fillText(clipCanvasText(ctx,task.name,colWidth-210),x+55,ty);
+            ctx.fillStyle='#77889a'; ctx.font='15px system-ui, sans-serif'; ctx.fillText(`${task.runs}×${task.resinPerRun} · ${categoryLabel(task.category)}`,x+55,ty+22);
+            ctx.fillStyle='#8c7140'; ctx.font='700 16px system-ui, sans-serif'; ctx.textAlign='right'; ctx.fillText(`${task.runs*task.resinPerRun}`,x+colWidth-28,ty); ctx.textAlign='left';
+          });
+        }
+      });
+      y+=h+gap;
+    });
+    ctx.fillStyle='#bed0db'; ctx.font='15px system-ui, sans-serif'; ctx.fillText(state.lang==='en'?'Generated by Resin Route':'Gerado pelo Resin Route',margin,height-36);
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      const a=document.createElement('a');
+      a.href=dataUrl;
+      a.download=`resin-route-${new Date().toISOString().slice(0,10)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast(state.lang==='en'?'Plan image exported':'Imagem do plano exportada');
+    } catch (error) {
+      console.error('Image export failed', error);
+      toast(state.lang==='en'?'Could not export the image':'Não foi possível exportar a imagem');
+    }
+  }
+
+  function roundRect(ctx,x,y,w,h,r){
+    const rr=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,x+w,y+h,rr); ctx.arcTo(x+w,y+h,x,y+h,rr); ctx.arcTo(x,y+h,x,y,rr); ctx.arcTo(x,y,x+w,y,rr); ctx.closePath();
+  }
+
+  function clipCanvasText(ctx,text,maxWidth){
+    let value=String(text||''); if(ctx.measureText(value).width<=maxWidth) return value; while(value.length>3 && ctx.measureText(value+'…').width>maxWidth) value=value.slice(0,-1); return value+'…';
+  }
+
+  async function importPlanner(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const incoming = parsed.state || parsed;
+      if (!incoming.tasks || typeof incoming.tasks !== 'object') throw new Error('Arquivo de planejamento inválido');
+      state.resinCap = Number(incoming.resinCap) || 200;
+      DAYS.forEach(day => state.tasks[day] = Array.isArray(incoming.tasks[day]) ? incoming.tasks[day] : []);
+      activeDay = DAYS.includes(incoming.activeDay) ? incoming.activeDay : activeDay;
+      el.resinCapInput.value = state.resinCap;
+      saveState();
+      renderAll();
+      if (el.backupDialog?.open) el.backupDialog.close();
+      toast(state.lang === 'en' ? 'Backup restored' : 'Backup restaurado');
+    } catch (error) {
+      console.error(error);
+      if (el.backupDialog?.open) el.backupDialog.close();
+      toast(state.lang === 'en' ? 'Could not restore this backup' : 'Não foi possível restaurar esse backup');
+    }
+  }
+
+  function totalForDay(day) {
+    return state.tasks[day].reduce((sum, task) => sum + (Number(task.resinPerRun) || 0) * (Number(task.runs) || 0), 0);
+  }
+
+  function makeFallbackIcon(label, type='item') {
+    const initial=(String(label||'?').trim()[0]||'?').toUpperCase();
+    const palette={characters:['#6ba6c5','#325a78'],weapons:['#c5a766','#6f5941'],artifacts:['#9d78c4','#57436f'],domains:['#6ca9a0','#365f60'],boss:['#c87973','#704447'],materials:['#6e9ec9','#3b5c7b'],item:['#8aa0b4','#4c6073']}[type]||['#8aa0b4','#4c6073'];
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${palette[0]}"/><stop offset="1" stop-color="${palette[1]}"/></linearGradient></defs><rect width="160" height="160" rx="28" fill="url(#g)"/><circle cx="80" cy="72" r="42" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.28)" stroke-width="2"/><text x="80" y="89" text-anchor="middle" font-family="Georgia,serif" font-size="52" font-weight="700" fill="#fff7df">${escapeHtml(initial)}</text><path d="M36 127h88" stroke="#eed79b" stroke-width="3" stroke-linecap="round" opacity=".8"/></svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
+  function makeMiscSvg(kind) {
+    let art='';
+    if(kind==='artifact') art='<path d="M80 30c15 7 24 22 18 37 17-3 31 9 32 25-1 17-16 29-33 24-3 17-17 28-34 25-15-5-24-21-18-36-17 2-30-11-30-27 2-17 17-28 33-23 3-16 17-28 32-25Z" fill="#f4e5bb" stroke="#b99756" stroke-width="5"/><circle cx="80" cy="84" r="20" fill="#78b5ca" stroke="#e8cf8f" stroke-width="5"/>';
+    else if(kind==='mora') art='<circle cx="80" cy="80" r="48" fill="#dfb84f" stroke="#fff0b0" stroke-width="7"/><circle cx="80" cy="80" r="30" fill="none" stroke="#8b6726" stroke-width="6"/><path d="M80 54 96 80 80 106 64 80Z" fill="#fff0b0" stroke="#8b6726" stroke-width="4"/>';
+    else if(kind==='ore') art='<path d="m80 22 34 43-15 64-39 11-24-49 19-54Z" fill="#6dc5e5" stroke="#d7f4ff" stroke-width="6"/><path d="m80 22-8 72 27 35M55 37l17 57-36-3m78-26L72 94" fill="none" stroke="#3d82a1" stroke-width="5"/>';
+    else if(kind==='custom') art='<rect x="40" y="31" width="80" height="98" rx="12" fill="#f5e8c5" stroke="#9e8050" stroke-width="5"/><path d="M57 60h46M57 79h30M57 98h25" stroke="#718da2" stroke-width="6" stroke-linecap="round"/><circle cx="103" cy="103" r="25" fill="#6f9db9" stroke="#f3dda1" stroke-width="5"/><path d="M103 91v24M91 103h24" stroke="#fff6df" stroke-width="6" stroke-linecap="round"/>';
+    else art='<path d="M31 66h98v62H31Z" fill="#739dc5" stroke="#e6cf91" stroke-width="6"/><path d="M42 44h76l11 22H31Z" fill="#a8c5df" stroke="#e6cf91" stroke-width="6"/><path d="M70 65h20v63H70Z" fill="#d5b86d"/><circle cx="80" cy="88" r="12" fill="#f6e8bd" stroke="#8b7040" stroke-width="4"/><path d="M80 82v13" stroke="#8b7040" stroke-width="4" stroke-linecap="round"/>';
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><defs><radialGradient id="bg"><stop stop-color="#f7f0d9"/><stop offset="1" stop-color="#c9dce6"/></radialGradient></defs><rect width="160" height="160" rx="26" fill="url(#bg)"/>${art}</svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
+  function setSafeImage(img, fallback, urls, label) {
+    const candidates = Array.isArray(urls) ? urls.filter(Boolean) : (urls ? [urls] : []);
+    img.onload = null;
+    img.onerror = null;
+    img.removeAttribute('src');
+    img.alt = label || '';
+    img.loading = 'eager';
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    fallback.hidden = false;
+
+    if (!candidates.length) {
+      img.hidden = true;
+      return;
+    }
+
+    // Não usamos <img hidden loading="lazy">: alguns previews não iniciam o download
+    // de imagens preguiçosas que começam com display:none. Mantemos o elemento renderizado
+    // e invisível até a primeira URL válida carregar.
+    img.hidden = false;
+    img.style.visibility = 'hidden';
+    img.style.opacity = '0';
+    let index = 0;
+
+    const tryNext = () => {
+      if (index >= candidates.length) {
+        img.hidden = true;
+        img.style.visibility = '';
+        img.style.opacity = '';
+        fallback.hidden = false;
+        return;
+      }
+      const url = candidates[index++];
+      img.onload = () => {
+        img.hidden = false;
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        fallback.hidden = true;
+      };
+      img.onerror = tryNext;
+      img.src = url;
+    };
+    tryNext();
+  }
+
+  function tr(key) {
+    return I18N[state.lang]?.[key] ?? I18N.pt[key] ?? key;
+  }
+
+  function libraryLabel(meta) {
+    if (!meta) return '';
+    return state.lang === 'en' ? (meta.labelEn || meta.label) : meta.label;
+  }
+
+  function librarySingular(meta) {
+    if (!meta) return '';
+    return state.lang === 'en' ? (meta.singularEn || meta.singular) : meta.singular;
+  }
+
+  function dayLabel(day) { return DAY_NAMES[state.lang]?.[day] || day; }
+  function dayShort(day) { return DAY_SHORT[state.lang]?.[day] || String(day || '').slice(0,3); }
+  function categoryLabel(value) { return CATEGORY_LABELS[state.lang]?.[value] || humanize(value); }
+
+  function applyLanguage() {
+    document.documentElement.lang = state.lang === 'en' ? 'en' : 'pt-BR';
+    document.title = state.lang === 'en' ? 'Resin Route — Genshin Weekly Planner' : 'Resin Route — Planejador Semanal de Genshin';
+    el.languageSelect.value = state.lang;
+    el.languageLabel.textContent = tr('language');
+    document.querySelector('.brand small').textContent = tr('brandSubtitle');
+    el.exportBtn.querySelector('span:last-child').textContent = tr('export');
+    document.querySelector('.import-label').textContent = tr('import');
+    el.backupOpenBtn.textContent = tr('backup');
+    document.querySelector('#backupEyebrow').textContent = tr('backup').toUpperCase();
+    document.querySelector('#backupTitle').textContent = tr('backupTitle');
+    document.querySelector('#backupDescription').textContent = tr('backupDesc');
+    document.querySelector('#backupHelp').textContent = tr('backupHelp');
+    document.querySelector('.copy-backup-label').textContent = tr('copyBackup');
+    const hero = document.querySelector('.hero');
+    hero.querySelector('.eyebrow').textContent = tr('heroEyebrow');
+    hero.querySelector('h1').textContent = tr('heroTitle');
+    hero.querySelector('p').textContent = tr('heroText');
+    const stats = hero.querySelectorAll('.stat');
+    stats[0].querySelector('span').textContent = tr('thisWeek'); stats[0].querySelector('small').textContent = tr('plannedResin');
+    stats[1].querySelector('span').textContent = tr('completed'); stats[1].querySelector('small').textContent = tr('attemptsPlanned');
+    stats[2].querySelector('span').textContent = tr('dailyLimit'); stats[2].querySelector('small').textContent = tr('editable');
+    document.querySelector('.planner-column .eyebrow').textContent = tr('plan');
+    document.querySelector('#emptyState h3').textContent = tr('nothing');
+    document.querySelector('#emptyState p').textContent = tr('nothingText');
+    el.emptyBrowseBtn.textContent = tr('browse');
+    document.querySelector('.library-column .eyebrow').textContent = tr('gameLibrary');
+    document.querySelector('.library-column h2').textContent = tr('chooseFarm');
+    document.querySelector('.week-overview .eyebrow').textContent = tr('weekView');
+    document.querySelector('.week-overview h2').textContent = tr('resinDistribution');
+    el.clearWeekBtn.textContent = tr('clearWeek');
+    document.querySelector('#taskNameInput').closest('.field').querySelector('span').textContent = tr('taskName');
+    document.querySelector('#taskDayInput').closest('.field').querySelector('span').textContent = tr('day');
+    document.querySelector('#taskCategoryInput').closest('.field').querySelector('span').textContent = tr('category');
+    document.querySelector('#resinPerRunInput').closest('.field').querySelector('span').textContent = tr('resinPerRun');
+    document.querySelector('#runsInput').closest('.field').querySelector('span').textContent = tr('attempts');
+    document.querySelector('#noteInput').closest('.field').querySelector('span').innerHTML = `${escapeHtml(tr('note'))} <small>${escapeHtml(tr('optional'))}</small>`;
+    document.querySelector('.dialog-summary > span').textContent = tr('totalPlanned');
+    el.cancelDialogBtn.textContent = tr('cancel');
+    el.taskForm.querySelector('.dialog-actions .primary').textContent = tr('addPlan');
+    document.querySelector('.dialog-summary strong').lastChild.nodeValue = ` ${tr('resin')}`;
+    el.taskNameInput.placeholder = state.lang === 'en' ? 'e.g. Farm talent books' : 'ex.: Farmar livros de talento';
+    el.noteInput.placeholder = state.lang === 'en' ? 'e.g. need 12 more Philosophies' : 'ex.: faltam mais 12 Filosofias';
+    el.artifactMethodLabel.textContent = tr('artifactMethod');
+    document.querySelector('#characterFarmLabel').textContent = tr('characterFarm');
+    el.characterFarmInput.options[0].textContent = tr('charBoss');
+    el.characterFarmInput.options[1].textContent = tr('charAscension');
+    el.characterFarmInput.options[2].textContent = tr('charTalents');
+    el.characterFarmInput.options[3].textContent = tr('charWeekly');
+    document.querySelector('#strongboxEyebrow').textContent = tr('strongboxEyebrow');
+    document.querySelector('#strongboxTitle').textContent = tr('strongboxTitle');
+    document.querySelector('#strongboxDescription').textContent = tr('strongboxDesc');
+    el.strongboxSearch.placeholder = tr('strongboxSearch');
+    document.querySelector('.footer p:first-child').textContent = tr('footer1');
+    document.querySelector('.footer p:last-child').textContent = state.lang === 'en' ? 'Your planning data is stored only in this browser.' : 'Os dados do seu planejamento ficam armazenados apenas neste navegador.';
+    el.refreshDataBtn.title = tr('refresh');
+    el.refreshDataBtn.setAttribute('aria-label', tr('refresh'));
+    [...el.taskCategoryInput.options].forEach(option => { option.textContent = categoryLabel(option.value); });
+    renderLibraryTabs();
+  }
+
+  function changeLanguage() {
+    const next = el.languageSelect.value === 'en' ? 'en' : 'pt';
+    if (next === state.lang) return;
+    state.lang = next;
+    saveState();
+    libraryCache.clear();
+    seedFallbackLibraries();
+    applyLanguage();
+    el.taskDayInput.innerHTML = DAYS.map(day => `<option value="${day}">${dayLabel(day)}</option>`).join('');
+    renderAll();
+    renderLibraryGrid(activeLibraryType);
+    setApiStatus(activeLibraryType === 'misc' ? 'online' : 'loading');
+    loadLibrary(activeLibraryType);
+    if (el.strongboxDialog.open) loadLibrary('artifacts').then(renderStrongboxGrid);
+  }
+
+  function normalizeDayInput(value) {
+    const normalized = String(value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const aliases = {
+      monday: 'Monday', mon: 'Monday', segunda: 'Monday', 'segunda-feira': 'Monday', seg: 'Monday',
+      tuesday: 'Tuesday', tue: 'Tuesday', terca: 'Tuesday', 'terca-feira': 'Tuesday', ter: 'Tuesday',
+      wednesday: 'Wednesday', wed: 'Wednesday', quarta: 'Wednesday', 'quarta-feira': 'Wednesday', qua: 'Wednesday',
+      thursday: 'Thursday', thu: 'Thursday', quinta: 'Thursday', 'quinta-feira': 'Thursday', qui: 'Thursday',
+      friday: 'Friday', fri: 'Friday', sexta: 'Friday', 'sexta-feira': 'Friday', sex: 'Friday',
+      saturday: 'Saturday', sat: 'Saturday', sabado: 'Saturday', sab: 'Saturday',
+      sunday: 'Sunday', sun: 'Sunday', domingo: 'Sunday', dom: 'Sunday',
+    };
+    return aliases[normalized] || DAYS.find(day => day.toLowerCase() === normalized) || null;
+  }
+
+  function normalizeAvailableDays(days) {
+    return [...new Set((Array.isArray(days) ? days : [days]).map(normalizeDayInput).filter(Boolean))];
+  }
+
+  function getTodayName() {
+    const jsDay = new Date().getDay();
+    return DAYS[(jsDay + 6) % 7];
+  }
+
+  function slugify(value) {
+    return String(value || '')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  function titleFromSlug(slug) {
+    return slug
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, char => char.toUpperCase())
+      .replace(/\bDps\b/g, 'DPS')
+      .replace(/\bHp\b/g, 'HP');
+  }
+
+  function humanize(value) {
+    return titleFromSlug(String(value || ''));
+  }
+
+  function formatNumber(value) {
+    return new Intl.NumberFormat('pt-BR').format(value || 0);
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function uid() {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
+  }
+
+  function toast(message) {
+    let node = document.querySelector('.toast');
+    if (!node) {
+      node = document.createElement('div');
+      node.className = 'toast';
+      document.body.appendChild(node);
+    }
+    node.textContent = message;
+    node.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => node.classList.remove('show'), 1900);
+  }
+})();
+
+  </script>
+</body>
+</html>
