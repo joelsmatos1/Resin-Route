@@ -7,6 +7,26 @@
     filename => `https://static.nanoka.cc/gi/UI/${encodeURIComponent(cleanAssetName(filename))}.webp`,
     filename => `https://enka.network/ui/${encodeURIComponent(cleanAssetName(filename))}.png`,
   ];
+  // Release supplement. Full live records always take precedence over these
+  // basic entries. Sources and validation limits are documented in LEIA-ME.md.
+  const RELEASE_71 = {
+    characters: [
+      { name:'Vesna', elementText:'Anemo', weaponText:'Sword', rarity:5 },
+      { name:'Vodyanitsa', elementText:'Hydro', weaponText:'Catalyst', rarity:5 },
+    ],
+    weapons: [
+      { name:'Beyond the Chrysalis', weaponText:'Sword', rarity:5 },
+      { name:'Hymn of the Maelstrom', weaponText:'Catalyst', rarity:5 },
+      { name:'New Bough', weaponText:'Sword', rarity:4 },
+      { name:"Winter's Heavy Heart", weaponText:'Catalyst', rarity:4 },
+      { name:'Breezeborne Refrain', weaponText:'Bow', rarity:4 },
+      { name:'Silver Light', weaponText:'Sword', rarity:4 },
+    ],
+  };
+  const pendingFarmMessage = () => state.lang === 'en'
+    ? 'Farming details not available yet. Days and materials have not been verified.'
+    : 'Dados de farm ainda indisponíveis. Dias e materiais não foram verificados.';
+
   const STORAGE_KEY = 'resin-route-state-v1';
   const CURRENT_STRONGBOX_MAX_VERSION = 6.0; // v7.0 includes the two artifact sets released in 6.0/Luna I.
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -163,6 +183,12 @@
     renderAll();
     renderLibraryGrid(activeLibraryType);
     loadLibrary(activeLibraryType);
+    window.ResinCloud?.attach({
+      snapshot: () => JSON.parse(JSON.stringify(state)),
+      empty: defaultState,
+      guest: loadState,
+      apply: applyCloudState,
+    });
   }
 
   function defaultState() {
@@ -196,7 +222,26 @@
 
   function saveState() {
     state.activeDay = activeDay;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (window.ResinCloud?.save(state)) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch { toast(state.lang === 'en' ? 'Could not save locally. Download a backup.' : 'Não foi possível salvar. Baixe um backup.'); }
+  }
+
+  function applyCloudState(incoming) {
+    if (!incoming || typeof incoming !== 'object' || !incoming.tasks) return;
+    state.resinCap = clamp(Number(incoming.resinCap) || 200, 20, 2000);
+    state.lang = incoming.lang === 'en' ? 'en' : 'pt';
+    state.tasks = DAYS.reduce((tasks, day) => {
+      tasks[day] = Array.isArray(incoming.tasks[day]) ? incoming.tasks[day].filter(task => task && typeof task === 'object') : [];
+      return tasks;
+    }, {});
+    activeDay = DAYS.includes(incoming.activeDay) ? incoming.activeDay : getTodayName();
+    state.activeDay = activeDay;
+    el.resinCapInput.value = state.resinCap;
+    el.taskDialog.close(); el.strongboxDialog.close(); el.backupDialog.close();
+    libraryCache.clear(); seedFallbackLibraries(); applyLanguage();
+    el.taskDayInput.innerHTML = DAYS.map(day => `<option value="${day}">${dayLabel(day)}</option>`).join('');
+    renderAll(); renderLibraryGrid(activeLibraryType); loadLibrary(activeLibraryType);
   }
 
   function bindEvents() {
@@ -228,7 +273,6 @@
 
     el.librarySearch.addEventListener('input', () => renderLibraryGrid(activeLibraryType));
     el.refreshDataBtn.addEventListener('click', () => {
-      libraryCache.delete(activeLibraryType);
       loadLibrary(activeLibraryType, true);
     });
 
@@ -478,6 +522,30 @@
     });
   }
 
+  function queryFolder(folder, language) {
+    const query = window.GenshinDb?.[folder];
+    if (typeof query !== 'function') return [];
+    const options = { matchCategories:true, verboseCategories:true, queryLanguages:[language], resultLanguage:language };
+    const result = query('names', options);
+    const records = Array.isArray(result) ? result : (result ? [result] : []);
+    return records.map(record => typeof record === 'string' ? query(record, options) : record).filter(Boolean);
+  }
+
+  function releaseEntries(type) {
+    const meta = LIBRARY_TYPES.find(item => item.id === type);
+    return (RELEASE_71[type] || []).map(record => {
+      const entity = normalizeDbEntity(type, { ...record, version:'7.1' }, meta);
+      entity.pendingFarmData = true;
+      entity.subtitle += state.lang === 'en' ? ' · Farming data pending' : ' · Dados de farm pendentes';
+      return entity;
+    });
+  }
+
+  function mergeReleaseEntries(type, items) {
+    const names = new Set(items.map(item => slugify(item.raw?.nameEnglish || item.name)));
+    return [...items, ...releaseEntries(type).filter(item => !names.has(slugify(item.name)))];
+  }
+
   async function loadLibrary(type, force = false) {
     const meta = LIBRARY_TYPES.find(item => item.id === type);
     if (!meta) return;
@@ -501,13 +569,19 @@
       const db = window.GenshinDb;
       if (!db || typeof db[meta.folder] !== 'function') throw new Error(`genshin-db folder unavailable: ${meta.folder}`);
 
-      const query = meta.categoryQuery || 'names';
       const dataLanguage = folderLanguages.get(`${state.lang}:${meta.folder}`) || (state.lang === 'en' ? 'English' : 'Portuguese');
-      const queryOptions = { matchCategories:true, verboseCategories:true, queryLanguages:[dataLanguage], resultLanguage:dataLanguage };
-      let rawItems = db[meta.folder](query, queryOptions);
-      if (!Array.isArray(rawItems)) rawItems = rawItems ? [rawItems] : [];
-      if (rawItems.length && typeof rawItems[0] === 'string') {
-        rawItems = rawItems.map(name => db[meta.folder](name, { queryLanguages:[dataLanguage], resultLanguage:dataLanguage })).filter(Boolean);
+      let rawItems = queryFolder(meta.folder, dataLanguage);
+      // Translations sometimes lag behind the English catalog. Merge by game ID,
+      // keeping localized records where both languages contain the same item.
+      if (RELEASE_71[type] && dataLanguage !== 'English') {
+        try {
+          await loadExternalScript(`${DB_CDN}/data/scripts/english-${meta.folder}.js`, `genshindb-english-${meta.folder}`, force);
+          const english = queryFolder(meta.folder, 'English');
+          const byId = new Map(english.filter(item => item.id != null).map(item => [String(item.id), item]));
+          rawItems = rawItems.map(item => ({ ...item, nameEnglish:byId.get(String(item.id))?.name || item.name }));
+          const ids = new Set(rawItems.map(item => String(item.id ?? slugify(item.name))));
+          rawItems.push(...english.filter(item => !ids.has(String(item.id ?? slugify(item.name)))));
+        } catch (error) { console.warn('English catalog supplement unavailable', error); }
       }
 
       if (type === 'domains') rawItems = groupDomainChallenges(rawItems).filter(isResinMaterialDomain);
@@ -517,7 +591,7 @@
         rawItems = rawItems.filter(item => isWeeklyBoss(item, weeklyDropIds));
       }
 
-      const items = rawItems.map(item => normalizeDbEntity(type, item, meta)).filter(item => item?.name).sort((a,b) => a.name.localeCompare(b.name));
+      const items = mergeReleaseEntries(type, rawItems.map(item => normalizeDbEntity(type, item, meta)).filter(item => item?.name)).sort((a,b) => a.name.localeCompare(b.name));
       if (type === 'domains') {
         await hydrateDomainDropIcons(items, force);
         await hydrateDomainRelations(items, force);
@@ -544,7 +618,7 @@
   }
 
   async function ensureGenshinDbFolder(folder, force = false) {
-    await loadExternalScript(`${DB_CDN}/genshindb-nodata.js`, 'genshindb-core', force);
+    await loadExternalScript(`${DB_CDN}/genshindb-nodata.js`, 'genshindb-core');
     if (!window.GenshinDb) throw new Error('genshin-db core did not initialize');
 
     const preferred = state.lang === 'en' ? 'English' : 'Portuguese';
@@ -568,7 +642,7 @@
 
   function loadExternalScript(src, key, force = false) {
     if (!force && key === 'genshindb-core' && window.GenshinDb) return Promise.resolve();
-    if (!force && scriptPromises.has(key)) return scriptPromises.get(key);
+    if (scriptPromises.has(key)) return scriptPromises.get(key);
 
     const promise = new Promise((resolve, reject) => {
       const existing = document.querySelector(`script[data-genshin-script="${key}"]`);
@@ -1034,7 +1108,7 @@
     if (type === 'misc') return miscEntries();
     const data = state.lang === 'en' ? en : pt;
     const meta = LIBRARY_TYPES.find(item => item.id === type);
-    return (data[type] || []).map(name => ({ id:slugify(name), name, entityType:type, typeLabel:librarySingular(meta), subtitle:librarySingular(meta), imageUrl:makeFallbackIcon(name, type), imageUrls:[makeFallbackIcon(name, type)], raw:type === 'artifacts' ? { rarityList:[5], effect2Pc:'fallback', effect4Pc:'fallback', version:'4.0' } : null }));
+    return mergeReleaseEntries(type, (data[type] || []).map(name => ({ id:slugify(name), name, entityType:type, typeLabel:librarySingular(meta), subtitle:librarySingular(meta), imageUrl:makeFallbackIcon(name, type), imageUrls:[makeFallbackIcon(name, type)], raw:type === 'artifacts' ? { rarityList:[5], effect2Pc:'fallback', effect4Pc:'fallback', version:'4.0' } : null })));
   }
 
   function miscEntries() {
@@ -1137,6 +1211,7 @@
   }
 
   async function applyFarmAvailability(entity) {
+    if (entity.pendingFarmData) { el.dialogSubtitle.textContent = pendingFarmMessage(); return; }
     const days = normalizeAvailableDays(entity.daysOfWeek || entity.raw?.daysOfWeek || entity.raw?.daysofweek || []);
     const raw = entity.raw || {};
     const extra = [];
@@ -1159,6 +1234,11 @@
 
   async function applyRelatedDomainAvailability(entity, mode = '') {
     if (!entity) return;
+    if (entity.pendingFarmData) {
+      setDialogAvailability([]);
+      el.dialogSubtitle.textContent = pendingFarmMessage();
+      return;
+    }
     if (entity.entityType === 'characters' && mode !== 'talent') {
       dialogAllowedDays = [];
       dialogAvailabilityContext = '';
@@ -1207,6 +1287,7 @@
   async function populateCharacterMaterialPreview(entity) {
     if (!entity || entity !== dialogEntity || entity.entityType !== 'characters') return;
     const mode = el.characterFarmInput.value;
+    if (entity.pendingFarmData) { el.characterMaterialPreview.textContent = pendingFarmMessage(); return; }
     el.characterMaterialPreview.innerHTML = `<span class="material-preview-loading">${escapeHtml(tr('loading'))}</span>`;
     try {
       await ensureGenshinDbFolder('materials');
@@ -1470,78 +1551,6 @@
     }
   }
 
-  function exportPlannerImage() {
-    const width = 1500;
-    const margin = 64;
-    const gap = 26;
-    const colWidth = (width - margin * 2 - gap) / 2;
-    const rows = [['Monday','Tuesday'], ['Wednesday','Thursday'], ['Friday','Saturday'], ['Sunday']];
-    const rowHeights = rows.map(pair => 112 + Math.max(...pair.map(day => state.tasks[day].length), 1) * 54);
-    const height = 210 + rowHeights.reduce((a,b)=>a+b,0) + gap * (rows.length - 1) + 80;
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    const bg = ctx.createLinearGradient(0,0,width,height);
-    bg.addColorStop(0,'#163650'); bg.addColorStop(.55,'#224b69'); bg.addColorStop(1,'#10283f');
-    ctx.fillStyle=bg; ctx.fillRect(0,0,width,height);
-    ctx.fillStyle='rgba(255,255,255,.05)'; ctx.beginPath(); ctx.arc(width-160,90,250,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#f2dfaa'; ctx.font='700 24px Georgia, serif'; ctx.fillText('✦ RESIN ROUTE',margin,64);
-    ctx.fillStyle='#ffffff'; ctx.font='700 48px Georgia, serif'; ctx.fillText(state.lang==='en'?'Weekly Genshin Plan':'Plano Semanal de Genshin',margin,122);
-    ctx.fillStyle='#c5d8e4'; ctx.font='22px system-ui, sans-serif';
-    const total=DAYS.reduce((sum,d)=>sum+totalForDay(d),0);
-    ctx.fillText(`${total} ${state.lang==='en'?'Resin planned':'resina planejada'} · ${new Date().toLocaleDateString(state.lang==='en'?'en-US':'pt-BR')}`,margin,162);
-
-    let y=200;
-    rows.forEach((pair,rowIndex)=>{
-      const h=rowHeights[rowIndex];
-      pair.forEach((day,col)=>{
-        const x=margin + col*(colWidth+gap);
-        roundRect(ctx,x,y,colWidth,h,22);
-        ctx.fillStyle='rgba(249,247,238,.96)'; ctx.fill();
-        ctx.strokeStyle='rgba(224,196,126,.55)'; ctx.lineWidth=2; ctx.stroke();
-        ctx.fillStyle='#435268'; ctx.font='700 27px Georgia, serif'; ctx.fillText(dayLabel(day),x+28,y+43);
-        ctx.fillStyle='#9a7a3e'; ctx.font='700 18px system-ui, sans-serif'; ctx.textAlign='right'; ctx.fillText(`${totalForDay(day)} / ${state.resinCap}`,x+colWidth-28,y+42); ctx.textAlign='left';
-        const tasks=state.tasks[day];
-        if (!tasks.length) {
-          ctx.fillStyle='#8a98a6'; ctx.font='18px system-ui, sans-serif'; ctx.fillText(state.lang==='en'?'Nothing planned':'Nada planejado',x+28,y+88);
-        } else {
-          tasks.forEach((task,i)=>{
-            const ty=y+84+i*54;
-            const done=(task.doneRuns||0)>=task.runs;
-            ctx.fillStyle=done?'#5f9d79':'#d0ae62'; ctx.beginPath(); ctx.arc(x+35,ty-5,7,0,Math.PI*2); ctx.fill();
-            ctx.fillStyle='#435268'; ctx.font='700 18px system-ui, sans-serif'; ctx.fillText(clipCanvasText(ctx,task.name,colWidth-210),x+55,ty);
-            ctx.fillStyle='#77889a'; ctx.font='15px system-ui, sans-serif'; ctx.fillText(`${task.runs}×${task.resinPerRun} · ${categoryLabel(task.category)}`,x+55,ty+22);
-            ctx.fillStyle='#8c7140'; ctx.font='700 16px system-ui, sans-serif'; ctx.textAlign='right'; ctx.fillText(`${task.runs*task.resinPerRun}`,x+colWidth-28,ty); ctx.textAlign='left';
-          });
-        }
-      });
-      y+=h+gap;
-    });
-    ctx.fillStyle='#bed0db'; ctx.font='15px system-ui, sans-serif'; ctx.fillText(state.lang==='en'?'Generated by Resin Route':'Gerado pelo Resin Route',margin,height-36);
-    try {
-      const dataUrl = canvas.toDataURL('image/png');
-      const a=document.createElement('a');
-      a.href=dataUrl;
-      a.download=`resin-route-${new Date().toISOString().slice(0,10)}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      toast(state.lang==='en'?'Plan image exported':'Imagem do plano exportada');
-    } catch (error) {
-      console.error('Image export failed', error);
-      toast(state.lang==='en'?'Could not export the image':'Não foi possível exportar a imagem');
-    }
-  }
-
-  function roundRect(ctx,x,y,w,h,r){
-    const rr=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,x+w,y+h,rr); ctx.arcTo(x+w,y+h,x,y+h,rr); ctx.arcTo(x,y+h,x,y,rr); ctx.arcTo(x,y,x+w,y,rr); ctx.closePath();
-  }
-
-  function clipCanvasText(ctx,text,maxWidth){
-    let value=String(text||''); if(ctx.measureText(value).width<=maxWidth) return value; while(value.length>3 && ctx.measureText(value+'…').width>maxWidth) value=value.slice(0,-1); return value+'…';
-  }
-
   async function importPlanner(event) {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -1704,7 +1713,7 @@
     document.querySelector('#strongboxDescription').textContent = tr('strongboxDesc');
     el.strongboxSearch.placeholder = tr('strongboxSearch');
     document.querySelector('.footer p:first-child').textContent = tr('footer1');
-    document.querySelector('.footer p:last-child').textContent = state.lang === 'en' ? 'Your planning data is stored only in this browser.' : 'Os dados do seu planejamento ficam armazenados apenas neste navegador.';
+    document.querySelector('.footer p:last-child').textContent = state.lang === 'en' ? 'Without an account, your plan stays in this browser. Sign in to sync across devices.' : 'Sem login, seu plano fica neste navegador. Entre para sincronizar entre dispositivos.';
     el.refreshDataBtn.title = tr('refresh');
     el.refreshDataBtn.setAttribute('aria-label', tr('refresh'));
     [...el.taskCategoryInput.options].forEach(option => { option.textContent = categoryLabel(option.value); });
