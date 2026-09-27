@@ -82,6 +82,7 @@
   if (!DAYS.includes(activeDay)) activeDay = 'Monday';
   let draggedTaskId = null;
   let dialogEntity = null;
+  let editingTaskId = null;
   let dialogOptions = {};
   let dialogAllowedDays = [];
   let dialogAvailabilityContext = '';
@@ -380,8 +381,9 @@
       const note = node.querySelector('.task-note');
       note.textContent = task.note || `${task.runs} ${task.runs === 1 ? (state.lang === 'en' ? 'run' : 'tentativa') : (state.lang === 'en' ? 'runs' : 'tentativas')} × ${task.resinPerRun} ${tr('resin')}`;
 
-      node.querySelector('.move-task').title = state.lang === 'en' ? 'Move to another day' : 'Mover para outro dia';
-      node.querySelector('.duplicate-task').title = state.lang === 'en' ? 'Duplicate' : 'Duplicar';
+      const editButton = node.querySelector('.edit-task');
+      editButton.title = state.lang === 'en' ? 'Edit task' : 'Editar tarefa';
+      editButton.setAttribute('aria-label', editButton.title);
       node.querySelector('.delete-task').title = state.lang === 'en' ? 'Delete' : 'Excluir';
       const img = node.querySelector('.task-image');
       const fallback = node.querySelector('.task-image-fallback');
@@ -431,28 +433,7 @@
       return;
     }
 
-    if (event.target.closest('.duplicate-task')) {
-      state.tasks[activeDay].push({ ...task, id: uid(), doneRuns: 0 });
-      saveState();
-      renderAll();
-      toast(state.lang === 'en' ? 'Task duplicated' : 'Tarefa duplicada');
-      return;
-    }
-
-    if (event.target.closest('.move-task')) {
-      const nextDay = prompt(`Mover para qual dia?\n${DAYS.map(dayLabel).join(', ')}`, dayLabel(activeDay));
-      if (!nextDay) return;
-      const normalized = normalizeDayInput(nextDay);
-      if (!normalized || normalized === activeDay) {
-        if (!normalized) toast(state.lang === 'en' ? 'Day not recognized' : 'Dia não reconhecido');
-        return;
-      }
-      state.tasks[activeDay] = state.tasks[activeDay].filter(item => item.id !== task.id);
-      state.tasks[normalized].push(task);
-      saveState();
-      renderAll();
-      toast(state.lang === 'en' ? `Moved to ${dayLabel(normalized)}` : `Movido para ${dayLabel(normalized)}`);
-    }
+    if (event.target.closest('.edit-task')) openEditTaskDialog(task);
   }
 
   function renderSummary() {
@@ -1115,6 +1096,8 @@
   }
 
   function openTaskDialog(entity, options = {}) {
+    editingTaskId = null;
+    el.taskForm.querySelector('.dialog-actions .primary').textContent = tr('addPlan');
     dialogEntity = entity;
     dialogOptions = options || {};
     dialogAllowedDays = [];
@@ -1178,6 +1161,27 @@
     }
     if (isArtifact) requestAnimationFrame(applyArtifactMethod);
     setTimeout(() => el.taskNameInput.focus(), 30);
+  }
+
+  function openEditTaskDialog(task) {
+    // Editing stays available even if the external game database is offline.
+    openTaskDialog(null);
+    editingTaskId = task.id;
+    el.dialogTitle.textContent = state.lang === 'en' ? 'Edit task' : 'Editar tarefa';
+    el.dialogType.textContent = categoryLabel(task.category || task.entityType || 'custom');
+    el.dialogSubtitle.textContent = task.name;
+    el.taskNameInput.value = task.name;
+    el.taskDayInput.value = activeDay;
+    el.taskCategoryField.hidden = true;
+    el.taskCategoryInput.value = task.category || 'custom';
+    el.resinPerRunInput.value = task.resinPerRun;
+    el.runsInput.value = task.runs;
+    el.noteInput.value = task.note || '';
+    el.taskForm.querySelector('.dialog-actions .primary').textContent = state.lang === 'en' ? 'Save changes' : 'Salvar alterações';
+    setDialogAvailability(task.allowedDays || [], task.availabilityContext || '');
+    document.querySelector('#dialogImageWrap').classList.toggle('character-portrait', task.entityType === 'characters');
+    requestAnimationFrame(() => setSafeImage(el.dialogImage, el.dialogFallback, task.imageUrls || task.imageUrl || '', task.name));
+    updateDialogTotal();
   }
 
   function resetDayOptionLabels() {
@@ -1398,9 +1402,32 @@
     if (!filtered.length) el.strongboxGrid.innerHTML = `<div class="strongbox-empty">${escapeHtml(tr('noStrongbox'))}</div>`;
   }
   async function addTaskFromDialog() {
+    const editId = editingTaskId;
     await dialogAvailabilityPromise;
+    if (!el.taskDialog.open || editingTaskId !== editId) return;
     const day = el.taskDayInput.value;
     if (dialogAllowedDays.length && !dialogAllowedDays.includes(day)) { showAvailabilityError(day); return; }
+    if (editId) {
+      const sourceDay = DAYS.find(key => state.tasks[key].some(item => item.id === editId));
+      if (!sourceDay) { toast(state.lang === 'en' ? 'This task no longer exists.' : 'Esta tarefa não existe mais.'); return; }
+      const index = state.tasks[sourceDay].findIndex(item => item.id === editId);
+      const original = state.tasks[sourceDay][index];
+      const name = el.taskNameInput.value.trim();
+      if (!name || !DAYS.includes(day)) return;
+      const runs = clamp(Math.floor(Number(el.runsInput.value) || 1), 1, 99);
+      const updated = { ...original, name, day,
+        resinPerRun: clamp(Number(el.resinPerRunInput.value) || 0, 0, 2000),
+        runs, doneRuns: Math.min(original.doneRuns || 0, runs), note: el.noteInput.value.trim() };
+      if (sourceDay === day) state.tasks[sourceDay][index] = updated;
+      else { state.tasks[sourceDay].splice(index, 1); state.tasks[day].push(updated); }
+      activeDay = day;
+      saveState();
+      el.taskDialog.close();
+      editingTaskId = null;
+      renderAll();
+      toast(state.lang === 'en' ? 'Task updated' : 'Tarefa atualizada');
+      return;
+    }
     const task = {
       id: uid(),
       name: el.taskNameInput.value.trim(),
@@ -1409,6 +1436,8 @@
       resinPerRun: clamp(Number(el.resinPerRunInput.value) || 0, 0, 2000),
       runs: clamp(Number(el.runsInput.value) || 1, 1, 99),
       doneRuns: 0,
+      allowedDays: [...dialogAllowedDays],
+      availabilityContext: dialogAvailabilityContext,
       note: el.noteInput.value.trim(),
       entityType: el.entityTypeInput.value || 'custom',
       entityId: el.entityIdInput.value || '',
