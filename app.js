@@ -1,6 +1,9 @@
 (() => {
   'use strict';
 
+  const successfulImageUrls = new Map();
+  const imageLoadTokens = new WeakMap();
+
   const DB_CDN = 'https://cdn.jsdelivr.net/gh/theBowja/genshin-db-dist@main';
   const ASSET_CDNS = [
     filename => `https://gi.yatta.moe/assets/UI/${encodeURIComponent(cleanAssetName(filename))}.png`,
@@ -1617,8 +1620,17 @@
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   }
 
+  // Successful URLs are remembered only for this page session, never in planner data.
+
   function setSafeImage(img, fallback, urls, label) {
-    const candidates = Array.isArray(urls) ? urls.filter(Boolean) : (urls ? [urls] : []);
+    const originalCandidates = Array.isArray(urls) ? urls.filter(Boolean) : (urls ? [urls] : []);
+    const cacheKey = JSON.stringify(originalCandidates);
+    const remembered = successfulImageUrls.get(cacheKey);
+    const candidates = remembered && originalCandidates.includes(remembered)
+      ? [remembered, ...originalCandidates.filter(url => url !== remembered)]
+      : originalCandidates;
+    const token = {};
+    imageLoadTokens.set(img, token);
     img.onload = null;
     img.onerror = null;
     img.removeAttribute('src');
@@ -1642,6 +1654,7 @@
     let index = 0;
 
     const tryNext = () => {
+      if (imageLoadTokens.get(img) !== token) return;
       if (index >= candidates.length) {
         img.hidden = true;
         img.style.visibility = '';
@@ -1651,12 +1664,20 @@
       }
       const url = candidates[index++];
       img.onload = () => {
+        if (imageLoadTokens.get(img) !== token) return;
+        successfulImageUrls.delete(cacheKey);
+        successfulImageUrls.set(cacheKey, url);
+        if (successfulImageUrls.size > 512) successfulImageUrls.delete(successfulImageUrls.keys().next().value);
         img.hidden = false;
         img.style.visibility = 'visible';
         img.style.opacity = '1';
         fallback.hidden = true;
       };
-      img.onerror = tryNext;
+      img.onerror = () => {
+        if (imageLoadTokens.get(img) !== token) return;
+        if (successfulImageUrls.get(cacheKey) === url) successfulImageUrls.delete(cacheKey);
+        tryNext();
+      };
       img.src = url;
     };
     tryNext();
