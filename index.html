@@ -8,6 +8,9 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="preconnect" href="https://enka.network" crossorigin>
   <link rel="preconnect" href="https://api.ambr.top" crossorigin>
+  <script>
+    try { document.documentElement.dataset.theme = localStorage.getItem('resin-route-theme') === 'dark' ? 'dark' : 'light'; } catch {}
+  </script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -24,9 +27,11 @@
     </a>
 
     <div class="top-actions">
-      <label class="language-control" title="Idioma / Language"><span id="languageLabel">Idioma</span><select id="languageSelect" aria-label="Idioma"><option value="pt">PT-BR</option><option value="en">EN</option></select></label>
+      <label class="language-control" title="Idioma / Language"><span id="languageLabel">Idioma</span><select id="languageSelect" aria-label="Idioma"><option value="pt">Português</option><option value="en">English</option></select></label>
+      <button class="button ghost theme-toggle" id="themeToggle" type="button" aria-pressed="false">☾ Modo escuro</button>
       <span id="cloudStatus" class="cloud-status" role="status" aria-live="polite">Salvo neste navegador</span>
       <button class="button ghost" id="cloudAccountBtn" type="button">Entrar</button>
+      <button class="button logout-button" id="cloudTopSignout" type="button" hidden>Sair da conta</button>
       <button class="button ghost" id="backupOpenBtn" type="button">Backup</button>
     </div>
   </header>
@@ -240,7 +245,7 @@
         <div class="cloud-actions">
           <button class="button primary" id="cloudRetry" type="button">Sincronizar agora</button>
           <button class="button ghost" id="cloudImport" type="button">Importar plano sem login</button>
-          <button class="button ghost" id="cloudSignout" type="button">Sair da conta</button>
+          <button class="button logout-button" id="cloudSignout" type="button">Sair da conta</button>
         </div>
       </div>
       <div id="cloudConflict" hidden>

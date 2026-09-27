@@ -7,22 +7,6 @@
     filename => `https://static.nanoka.cc/gi/UI/${encodeURIComponent(cleanAssetName(filename))}.webp`,
     filename => `https://enka.network/ui/${encodeURIComponent(cleanAssetName(filename))}.png`,
   ];
-  // Release supplement. Full live records always take precedence over these
-  // basic entries. Sources and validation limits are documented in LEIA-ME.md.
-  const RELEASE_71 = {
-    characters: [
-      { name:'Vesna', elementText:'Anemo', weaponText:'Sword', rarity:5 },
-      { name:'Vodyanitsa', elementText:'Hydro', weaponText:'Catalyst', rarity:5 },
-    ],
-    weapons: [
-      { name:'Beyond the Chrysalis', weaponText:'Sword', rarity:5 },
-      { name:'Hymn of the Maelstrom', weaponText:'Catalyst', rarity:5 },
-      { name:'New Bough', weaponText:'Sword', rarity:4 },
-      { name:"Winter's Heavy Heart", weaponText:'Catalyst', rarity:4 },
-      { name:'Breezeborne Refrain', weaponText:'Bow', rarity:4 },
-      { name:'Silver Light', weaponText:'Sword', rarity:4 },
-    ],
-  };
   const pendingFarmMessage = () => state.lang === 'en'
     ? 'Farming details not available yet. Days and materials have not been verified.'
     : 'Dados de farm ainda indisponíveis. Dias e materiais não foram verificados.';
@@ -246,6 +230,12 @@
 
   function bindEvents() {
     el.languageSelect.addEventListener('change', changeLanguage);
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = theme;
+      try { localStorage.setItem('resin-route-theme', theme); } catch {}
+      refreshThemeControl();
+    });
     el.dayTabs.addEventListener('click', event => {
       const btn = event.target.closest('[data-day]');
       if (!btn) return;
@@ -531,21 +521,6 @@
     return records.map(record => typeof record === 'string' ? query(record, options) : record).filter(Boolean);
   }
 
-  function releaseEntries(type) {
-    const meta = LIBRARY_TYPES.find(item => item.id === type);
-    return (RELEASE_71[type] || []).map(record => {
-      const entity = normalizeDbEntity(type, { ...record, version:'7.1' }, meta);
-      entity.pendingFarmData = true;
-      entity.subtitle += state.lang === 'en' ? ' · Farming data pending' : ' · Dados de farm pendentes';
-      return entity;
-    });
-  }
-
-  function mergeReleaseEntries(type, items) {
-    const names = new Set(items.map(item => slugify(item.raw?.nameEnglish || item.name)));
-    return [...items, ...releaseEntries(type).filter(item => !names.has(slugify(item.name)))];
-  }
-
   async function loadLibrary(type, force = false) {
     const meta = LIBRARY_TYPES.find(item => item.id === type);
     if (!meta) return;
@@ -573,7 +548,7 @@
       let rawItems = queryFolder(meta.folder, dataLanguage);
       // Translations sometimes lag behind the English catalog. Merge by game ID,
       // keeping localized records where both languages contain the same item.
-      if (RELEASE_71[type] && dataLanguage !== 'English') {
+      if (['characters', 'weapons'].includes(type) && dataLanguage !== 'English') {
         try {
           await loadExternalScript(`${DB_CDN}/data/scripts/english-${meta.folder}.js`, `genshindb-english-${meta.folder}`, force);
           const english = queryFolder(meta.folder, 'English');
@@ -591,7 +566,7 @@
         rawItems = rawItems.filter(item => isWeeklyBoss(item, weeklyDropIds));
       }
 
-      const items = mergeReleaseEntries(type, rawItems.map(item => normalizeDbEntity(type, item, meta)).filter(item => item?.name)).sort((a,b) => a.name.localeCompare(b.name));
+      const items = rawItems.map(item => normalizeDbEntity(type, item, meta)).filter(item => item?.name).sort((a,b) => a.name.localeCompare(b.name));
       if (type === 'domains') {
         await hydrateDomainDropIcons(items, force);
         await hydrateDomainRelations(items, force);
@@ -620,6 +595,14 @@
   async function ensureGenshinDbFolder(folder, force = false) {
     await loadExternalScript(`${DB_CDN}/genshindb-nodata.js`, 'genshindb-core');
     if (!window.GenshinDb) throw new Error('genshin-db core did not initialize');
+
+    // This release shipped new records without their search indexes. Load the
+    // generated upstream supplement first; later online data takes precedence.
+    try {
+      await loadExternalScript('genshin-db-7.1.js', 'genshindb-release-7-1');
+    } catch (error) {
+      console.warn('Genshin 7.1 supplement unavailable; continuing with online data', error);
+    }
 
     const preferred = state.lang === 'en' ? 'English' : 'Portuguese';
     const preferredKey = `${preferred.toLowerCase()}-${folder}`;
@@ -1079,11 +1062,20 @@
 
   function refreshSavedTaskImages(type, items) {
     const byId = new Map(items.map(item => [String(item.id), item]));
+    // Upgrade old manual release references without moving or deleting tasks.
+    const legacyEntries = new Map(['characters', 'weapons'].includes(type)
+      ? items.filter(item => !item.pendingFarmData).map(item => [slugify(item.raw?.nameEnglish || item.name), item])
+      : []);
     let changed = false;
     for (const day of DAYS) {
       for (const task of state.tasks[day]) {
         if (task.entityType !== type || !task.entityId) continue;
-        const current = byId.get(String(task.entityId));
+        const legacyId = String(task.entityId);
+        const current = byId.get(legacyId) || (['vesna', 'vodyanitsa', 'beyond-the-chrysalis', 'hymn-of-the-maelstrom', 'new-bough', 'winter-s-heavy-heart', 'breezeborne-refrain', 'silver-light'].includes(legacyId) ? legacyEntries.get(legacyId) : null);
+        if (current && legacyId !== String(current.id)) {
+          task.entityId = current.id;
+          changed = true;
+        }
         if (!current?.imageUrls?.length) continue;
         if (JSON.stringify(task.imageUrls || []) !== JSON.stringify(current.imageUrls)) {
           task.imageUrls = [...current.imageUrls];
@@ -1108,7 +1100,7 @@
     if (type === 'misc') return miscEntries();
     const data = state.lang === 'en' ? en : pt;
     const meta = LIBRARY_TYPES.find(item => item.id === type);
-    return mergeReleaseEntries(type, (data[type] || []).map(name => ({ id:slugify(name), name, entityType:type, typeLabel:librarySingular(meta), subtitle:librarySingular(meta), imageUrl:makeFallbackIcon(name, type), imageUrls:[makeFallbackIcon(name, type)], raw:type === 'artifacts' ? { rarityList:[5], effect2Pc:'fallback', effect4Pc:'fallback', version:'4.0' } : null })));
+    return (data[type] || []).map(name => ({ id:slugify(name), name, entityType:type, typeLabel:librarySingular(meta), subtitle:librarySingular(meta), imageUrl:makeFallbackIcon(name, type), imageUrls:[makeFallbackIcon(name, type)], raw:type === 'artifacts' ? { rarityList:[5], effect2Pc:'fallback', effect4Pc:'fallback', version:'4.0' } : null }));
   }
 
   function miscEntries() {
@@ -1659,7 +1651,21 @@
   function dayShort(day) { return DAY_SHORT[state.lang]?.[day] || String(day || '').slice(0,3); }
   function categoryLabel(value) { return CATEGORY_LABELS[state.lang]?.[value] || humanize(value); }
 
+  function refreshThemeControl() {
+    const dark = document.documentElement.dataset.theme === 'dark';
+    const button = document.getElementById('themeToggle');
+    button.textContent = dark
+      ? (state.lang === 'en' ? '☀ Light mode' : '☀ Modo claro')
+      : (state.lang === 'en' ? '☾ Dark mode' : '☾ Modo escuro');
+    button.setAttribute('aria-pressed', String(dark));
+    button.setAttribute('aria-label', state.lang === 'en' ? 'Dark mode' : 'Modo escuro');
+    button.title = button.textContent;
+  }
+
   function applyLanguage() {
+    refreshThemeControl();
+    window.ResinCloud?.refreshLabels();
+    el.languageSelect.setAttribute('aria-label', state.lang === 'en' ? 'Language' : 'Idioma');
     document.documentElement.lang = state.lang === 'en' ? 'en' : 'pt-BR';
     document.title = state.lang === 'en' ? 'Resin Route — Genshin Weekly Planner' : 'Resin Route — Planejador Semanal de Genshin';
     el.languageSelect.value = state.lang;

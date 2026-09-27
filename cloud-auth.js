@@ -23,6 +23,8 @@
     $('cloudSignup').textContent = text('Criar conta','Create account');
     $('cloudReset').textContent = text('Esqueci minha senha','Forgot password');
     $('cloudSignout').textContent = text('Sair da conta','Sign out');
+    $('cloudTopSignout').textContent = text('Sair da conta','Sign out');
+    $('cloudTopSignout').hidden = !user;
     $('cloudImport').textContent = text('Importar plano sem login','Import guest plan');
     $('cloudRetry').textContent = text('Sincronizar agora','Sync now');
     $('cloudKeepLocal').textContent = text('Manter esta versão','Keep this version');
@@ -120,10 +122,10 @@
     repaint();
   }
   async function action(run) {
-    const buttons=[...$('cloudDialog').querySelectorAll('button:not(#cloudClose)')];
+    const buttons=[...$('cloudDialog').querySelectorAll('button:not(#cloudClose)'), $('cloudTopSignout')];
     buttons.forEach(b=>b.disabled=true); notice('');
     try { if(await start()) await run(); }
-    catch(error) { notice(errorMessage(error)); }
+    catch(error) { notice(errorMessage(error)); if (!$('cloudDialog').open) $('cloudDialog').showModal(); }
     finally { buttons.forEach(b=>b.disabled=false);$('cloudPassword').value=''; }
   }
   window.ResinCloud = {
@@ -168,11 +170,14 @@
         action(async()=>{const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:redirectURL()});if(error)throw error;
           notice(text('Se houver uma conta para esse email, você receberá um link para redefinir a senha.','If an account exists for this email, you will receive a password reset link.'));});
       });
-      $('cloudSignout').addEventListener('click',()=>action(async()=>{
+      const signout = () => action(async()=>{
         if(store.dirty && !confirm(text('Há alterações não sincronizadas. Elas ficarão neste navegador para esta conta. Sair mesmo assim?','Unsynced changes will remain in this browser for this account. Sign out anyway?')))return;
         const {error}=await client.auth.signOut({scope:'local'});if(error)throw error;
         await handleSession(null);
-      }));
+        $('cloudDialog').close();
+      });
+      $('cloudSignout').addEventListener('click',signout);
+      $('cloudTopSignout').addEventListener('click',signout);
       $('cloudImport').addEventListener('click',()=>action(async()=>{
         if(!confirm(text('Substituir o plano desta conta pelo plano sem login deste navegador? O plano sem login será preservado.','Replace this account’s plan with this browser’s guest plan? The guest plan will be preserved.')))return;
         // Retain the current account plan before an explicit import.
